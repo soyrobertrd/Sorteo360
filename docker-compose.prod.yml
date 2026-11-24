@@ -98,6 +98,8 @@ services:
       KC_HEALTH_ENABLED: "true"
       # El realm usa ${APP_DOMAIN} en los redirect URIs de sorteo360-app; sin esto el import falla.
       APP_DOMAIN: ${APP_DOMAIN:?Definí APP_DOMAIN en .env.prod}
+      # Contraseña de admin/supervisor/sorteo: el default `localdev` no pasa la política length(10) del realm.
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:?Definí DEMO_USER_PASSWORD en .env.prod (10+ caracteres, con un dígito)}
       EVENTS_SERVICE_CLIENT_SECRET: ${EVENTS_SERVICE_CLIENT_SECRET:?Definí EVENTS_SERVICE_CLIENT_SECRET en .env.prod}
       CONVOCATORIAS_SERVICE_CLIENT_SECRET: ${CONVOCATORIAS_SERVICE_CLIENT_SECRET:?Definí CONVOCATORIAS_SERVICE_CLIENT_SECRET en .env.prod}
     volumes:

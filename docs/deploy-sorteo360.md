@@ -45,7 +45,7 @@ docker compose -f docker-compose.prod.yml logs --tail=50 events-service keycloak
 Al arrancar por primera vez:
 - `postgres-certs` genera la CA interna de PostgreSQL.
 - `postgres` y `postgres-roles` crean bases y usuarios aislados (`events_app`, `convocatorias_app`, `notifications_app`, `keycloak_app`).
-- `keycloak` importa `infra/keycloak/sorteo360-realm.json` la primera vez únicamente. El realm trae 5 usuarios demo con la contraseña `localdev`: **borrarlos antes de abrir el DNS** con el paso a paso de §6.1.
+- `keycloak` importa `infra/keycloak/sorteo360-realm.json` la primera vez únicamente. El realm trae los usuarios demo con la contraseña de `DEMO_USER_PASSWORD` (`localdev` solo en dev): **borrarlos antes de abrir el DNS** con el paso a paso de §6.1.
 - `caddy` obtiene los certificados TLS de Let's Encrypt automáticamente.
 
 ## 4. Copias de seguridad de PostgreSQL

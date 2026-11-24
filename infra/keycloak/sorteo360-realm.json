@@ -450,7 +450,7 @@
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "localdev", "temporary": false }
+        { "type": "password", "value": "${DEMO_USER_PASSWORD:localdev}", "temporary": false }
       ],
       "realmRoles": ["opt_director"]
     },
@@ -462,7 +462,7 @@
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "localdev", "temporary": false }
+        { "type": "password", "value": "${DEMO_USER_PASSWORD:localdev}", "temporary": false }
       ],
       "realmRoles": ["central_admin"]
     },
@@ -474,7 +474,7 @@
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "localdev", "temporary": false }
+        { "type": "password", "value": "${DEMO_USER_PASSWORD:localdev}", "temporary": false }
       ],
       "realmRoles": ["proyector"]
     },
