@@ -1,5 +1,8 @@
 # Auditoría de seguridad — noviembre 2026 (run-1)
 
+> **Actualización 2026-11-24:** los 4 confirmados y los pendientes 2, 4, 5 y 7 ya están corregidos
+> (S1.3 y S1.4 en `plans/bloques-pendientes.md`). Siguen abiertos el 1, el 3 y el 6 (tarea S1.5).
+
 Estado al 2026-11-23, para retomar en la próxima sesión. Es una revisión **parcial** (perfil `quick`): no afirma cobertura completa.
 
 - **Informe completo y evidencias:** fuera del repo, en `C:\Users\Ro.Guzman\security-audit-skill\sorteo360\run-1\` (`REPORT.md` en español, `FINDINGS-DETAIL.md`, `NEEDS-VALIDATION.md`, `findings.json`, `coverage-ledger.json`, `agents/sandbox-runner/artifacts/`).

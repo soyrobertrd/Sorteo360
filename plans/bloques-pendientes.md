@@ -239,6 +239,10 @@ Detalle, archivos y pruebas de cada uno en `docs/security-audit-2026-11.md`.
       Hecho el 2026-11-24 para 2, 4, 5 y 7 (`EventChildTenantIsolationTests`). **Siguen abiertos
       el 1 (convocatorias sin tenants) y el 3 (QR de otra persona)**: no son filtros de EF, son
       decisiones de diseño; Banreservas no usa convocatorias.
+- [ ] S1.5 Corregir después de las pruebas los pendientes que siguen abiertos (anotado el
+      2026-11-24, al hacer público el repo): el 1 (convocatorias sin tenants), el 3 (una
+      inscripción repetida devuelve el QR de otra persona) y el 6 (el SPA se puede meter en un
+      iframe: falta `X-Frame-Options`/`frame-ancestors` en Caddy y nginx).
 
 ### Bloque D4: CI (2 tareas)
 
