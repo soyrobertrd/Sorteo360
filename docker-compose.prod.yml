@@ -96,6 +96,8 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_PROXY_HEADERS: xforwarded
       KC_HEALTH_ENABLED: "true"
+      # El realm usa ${APP_DOMAIN} en los redirect URIs de sorteo360-app; sin esto el import falla.
+      APP_DOMAIN: ${APP_DOMAIN:?Definí APP_DOMAIN en .env.prod}
       EVENTS_SERVICE_CLIENT_SECRET: ${EVENTS_SERVICE_CLIENT_SECRET:?Definí EVENTS_SERVICE_CLIENT_SECRET en .env.prod}
       CONVOCATORIAS_SERVICE_CLIENT_SECRET: ${CONVOCATORIAS_SERVICE_CLIENT_SECRET:?Definí CONVOCATORIAS_SERVICE_CLIENT_SECRET en .env.prod}
     volumes:
