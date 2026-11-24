@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\shared\Sorteo360.Platform\Sorteo360.Platform.csproj" />
+    <ProjectReference Include="..\Sorteo360.Notifications.Core\Sorteo360.Notifications.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+
+  <!-- Expose internals for unit testing internal classes -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sorteo360.Notifications.Tests.Unit" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,30 @@
+meta {
+  name: 08 Cancel Event
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/cancel
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{gcCancelEventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "reason": "Cancelado para probar el guard de ciudades (flujo Bruno)."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq cancelled
+}

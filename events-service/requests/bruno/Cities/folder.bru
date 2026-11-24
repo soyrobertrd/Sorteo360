@@ -1,0 +1,16 @@
+meta {
+  name: Cities
+  seq: 3
+}
+
+docs {
+  Sub-recurso de ciudades del evento (`/v1/events/{eventId}/cities`).
+
+  Un evento tiene exactamente una ciudad, la que recibió al crearse: no hay ruta
+  para agregar ni quitar otra. Corregirla (PATCH) vale para cualquier tipo de
+  evento y exige uno no terminal (409 `EVENT_NOT_EDITABLE` si está cerrado o
+  cancelado).
+
+  Setear `eventId` y `cityId` en el environment, o correr el
+  "Flow - City Management" que encadena todo solo.
+}

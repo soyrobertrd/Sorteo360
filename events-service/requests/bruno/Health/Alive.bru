@@ -1,0 +1,20 @@
+meta {
+  name: Alive
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/_alive
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Liveness probe. 200 si el proceso está vivo. No evalúa dependencias externas.
+  Anónimo y sin versión.
+}

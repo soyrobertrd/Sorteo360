@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\shared\Sorteo360.Platform\Sorteo360.Platform.csproj" />
+    <ProjectReference Include="..\Sorteo360.Events.Core\Sorteo360.Events.Core.csproj" />
+    <ProjectReference Include="..\Sorteo360.Events.Infrastructure\Sorteo360.Events.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Logging -->
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Enrichers.Environment" />
+    <PackageReference Include="Serilog.Enrichers.Process" />
+    <PackageReference Include="Serilog.Exceptions" />
+    <PackageReference Include="Serilog.Expressions" />
+    <PackageReference Include="Serilog.Sinks.Async" />
+    <!-- API versioning / docs -->
+    <PackageReference Include="Asp.Versioning.Http" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    <!-- Health checks -->
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
+    <!-- Validation -->
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sorteo360.Events.Tests.Unit" />
+    <InternalsVisibleTo Include="Sorteo360.Events.Tests.Integration" />
+  </ItemGroup>
+
+</Project>

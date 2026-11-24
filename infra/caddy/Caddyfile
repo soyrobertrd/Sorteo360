@@ -1,0 +1,39 @@
+# ============================================================================
+# Sorteo360 — Reverse proxy HTTPS (Caddy) para producción.
+# Termina TLS automáticamente (Let's Encrypt para dominios públicos o `tls internal`
+# en modo salón/red local sin internet).
+# ============================================================================
+
+{$APP_DOMAIN} {
+	# Descomentar en red local cerrada / salón sin DNS público:
+	# tls internal
+
+	encode gzip zstd
+
+	# El frontend nginx interno atiende la SPA y enruta /v1/* hacia events-service,
+	# convocatorias-service y notification-service dentro de la red privada de Docker.
+	reverse_proxy frontend:8080 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
+}
+
+{$AUTH_DOMAIN} {
+	# Descomentar en red local cerrada / salón sin DNS público:
+	# tls internal
+
+	reverse_proxy keycloak:8080 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Port 443
+	}
+}
+
+# Descomentar si se reciben webhooks firmados de eventos SendGrid en producción:
+# {$HOOKS_DOMAIN} {
+# 	handle /hooks/sendgrid/events {
+# 		reverse_proxy notification-service:8080
+# 	}
+# 	respond 404
+# }
+

@@ -1,0 +1,16 @@
+# Dependencias y salidas de build (se regeneran dentro de la imagen).
+node_modules/
+dist/
+
+# Config local — el modo de datos de la imagen viene de los build args.
+.env
+*.local
+
+# Artefactos de editor / SO.
+.vscode/
+.idea/
+.DS_Store
+
+# El propio Dockerfile / dockerignore no se necesitan dentro del contexto.
+Dockerfile
+.dockerignore

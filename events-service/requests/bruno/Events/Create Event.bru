@@ -1,0 +1,84 @@
+meta {
+  name: Create Event
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "type": "Roadshow",
+    "name": "Roadshow Europa 2026",
+    "startDate": "2026-09-01",
+    "endDate": "2026-09-05",
+    "optOfficeId": "{{optOfficeId}}",
+    "optContactId": "{{optContactId}}",
+    "language": "es",
+    "visibility": "private",
+    "seatingLayout": "Banquet",
+    "externalUrl": "https://mitur.example/roadshow-europa",
+    "invitedCount": 150,
+    "description": "Gira promocional por tres ciudades europeas con agenda de citas B2B.",
+    "estimatedBudget": {
+      "amount": 125000.50,
+      "currency": "EUR"
+    },
+    "city": "Madrid",
+    "country": "España",
+    "timeZone": "Europe/Madrid"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Crea un evento (estado inicial `planning`) junto con su primera ciudad de roadshow.
+  Devuelve **201** con el `Location` (`/v1/events/{id}`) y el GUID del evento en el body.
+
+  **Obligatorios:** `type`, `name`, `startDate`, `endDate`, `optOfficeId`, `city`, `country`.
+  **Opcionales:** `optContactId`, `language`, `visibility`, `seatingLayout`, `externalUrl`,
+  `invitedCount`, `description`, `estimatedBudget`.
+
+  `visibility` es opcional acá y obligatoria en la columna: omitirla crea el evento `private`.
+  Se pide así porque el formulario de eventos todavía no tiene control de visibilidad, y
+  equivocarse cuesta un PATCH. `language` omitido crea el evento en `es`.
+
+  `seatingLayout` es el montaje del salón, opcional para todo tipo de evento: omitirlo crea el
+  evento sin montaje del salón, que quiere decir que nadie lo eligió todavía (no que sea `Cocktail`). Un
+  valor fuera de los seis es **400** sobre el campo, sin código.
+
+  Reglas: `endDate >= startDate`; `invitedCount > 0`; `externalUrl` URL absoluta.
+
+  `estimatedBudget` es lo presupuestado, no lo gastado: `totalCost` se calcula al cerrar con
+  las cotizaciones aprobadas y nada ata uno al otro. `description` es texto libre sin tope.
+
+  - **400** `EVENT_BUDGET_CURRENCY_NOT_SUPPORTED` — la moneda no es `USD` ni `EUR`
+    (distingue mayúsculas).
+  - **400** `EVENT_BUDGET_AMOUNT_INVALID` — el monto no es mayor que cero. Para decir que
+    todavía no hay presupuesto, omití el campo entero.
+
+  `optOfficeId` y `optContactId` son ids del directorio de OPT del CRM
+  (`GET /v1/opts` en crm-service). Se validan en vivo contra el CRM antes de escribir:
+
+  - **409** `OPT_OFFICE_NOT_AVAILABLE` — la oficina no existe o ya no está vigente.
+  - **409** `OPT_CONTACT_NOT_AVAILABLE` — el contacto no existe, no está vigente, o es de
+    otra oficina.
+  - **503** `CRM_UNAVAILABLE` — el CRM no contesta; la escritura se rechaza en lugar de
+    guardar un id sin validar.
+
+  - **type:** Roadshow | Feria | Tradeshow | Webinar
+  - **language:** es | en | fr | de | pt | it
+  - **visibility:** public | private
+  - **seatingLayout:** Banquet | Auditorium | Conference | Cocktail | UShape | Classroom
+}

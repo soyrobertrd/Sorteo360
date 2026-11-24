@@ -1,0 +1,40 @@
+meta {
+  name: Flow - City Management
+  seq: 8
+}
+
+docs {
+  # Flujo: la ciudad del evento (corrección y guards)
+
+  Ejecutá esta carpeta con el **runner** (click derecho en la carpeta → Run) con el
+  environment **Local** seleccionado y el servicio levantado. Cada paso trae asserts,
+  incluidos los negativos (400/404/409), así que el runner queda todo en verde si
+  las reglas se comportan como deben.
+
+  Reglas: un evento tiene exactamente una ciudad, la que recibió al crearse; no hay
+  ruta para agregar ni quitar otra. Cualquier tipo de evento la corrige con PATCH
+  mientras no esté cerrado ni cancelado. PATCH reemplaza el estado completo de la
+  ciudad (los opcionales omitidos quedan en null).
+
+  ## Escenario A — corrección + validaciones (pasos 01-05)
+  1.  Create Event              → `gcEventId` (nace con su ciudad)
+  2.  Get City                  → captura `gcCityId` (assert 1 ciudad)
+  3.  Update City               (200; renombra y pone fecha; assert del body)
+  4.  Update Nonexistent City   → 404
+  5.  Update City without Name  → 400 (validator)
+
+  ## Escenario B — guard de estado terminal (pasos 06-09)
+  6.  Create Event to Cancel    → `gcCancelEventId`
+  7.  Get City to Cancel        → captura `gcCancelCityId`
+  8.  Cancel Event              (200; queda terminal)
+  9.  Update City after Cancel  → 409 (`EVENT_NOT_EDITABLE`)
+
+  ## Escenario C — cualquier tipo corrige su ciudad (pasos 10-12)
+  10. Create Feria Event        → `gcFeriaEventId`
+  11. Get Feria City            → captura `gcFeriaCityId`
+  12. Update Feria City         (200)
+
+  Variables de runtime propias del flujo (`gcEventId`, `gcCityId`,
+  `gcCancelEventId`, `gcCancelCityId`, `gcFeriaEventId`, `gcFeriaCityId`) para no
+  pisar las de los otros flujos.
+}

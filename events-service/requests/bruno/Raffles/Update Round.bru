@@ -1,0 +1,32 @@
+meta {
+  name: Update Round
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/rounds/:roundId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  roundId: {{roundId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Gran final"
+  }
+}
+
+docs {
+  Reemplaza el nombre y la descripción de la ronda (ADR-0009): la descripción omitida se
+  **borra**. El número no se edita. **204**, **404 ROUND_NOT_FOUND** si la ronda no es de este
+  sorteo, más los mismos rechazos de estado que `Create Round`.
+}

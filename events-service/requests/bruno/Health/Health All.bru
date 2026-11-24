@@ -1,0 +1,15 @@
+meta {
+  name: Health All
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/_health/all
+  body: none
+  auth: none
+}
+
+docs {
+  Reporte detallado (JSON) de TODOS los checks registrados. Anónimo y sin versión.
+}

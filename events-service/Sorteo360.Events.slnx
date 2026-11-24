@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="../shared/Sorteo360.Platform/Sorteo360.Platform.csproj" />
+  <Project Path="Sorteo360.Events.Core/Sorteo360.Events.Core.csproj" />
+  <Project Path="Sorteo360.Events.Infrastructure/Sorteo360.Events.Infrastructure.csproj" />
+  <Project Path="Sorteo360.Events.Tests.Integration/Sorteo360.Events.Tests.Integration.csproj" />
+  <Project Path="Sorteo360.Events.Tests.Unit/Sorteo360.Events.Tests.Unit.csproj" />
+  <Project Path="Sorteo360.Events.Web/Sorteo360.Events.Web.csproj" />
+</Solution>

@@ -1,0 +1,32 @@
+meta {
+  name: 07 Update Final Amount
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/categories/:category/quote/candidates/:candidateId/proposals/:proposalId/final-amount
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  category: {{category}}
+  candidateId: {{candidateId}}
+  proposalId: {{proposalId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "finalAmount": { "amount": 11800.00, "currency": "USD" }
+  }
+}
+
+assert {
+  res.status: eq 204
+}

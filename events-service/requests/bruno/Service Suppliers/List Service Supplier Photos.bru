@@ -1,0 +1,25 @@
+meta {
+  name: List Service Supplier Photos
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/service-suppliers/:id/photos
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: {{serviceSupplierId}}
+}
+
+docs {
+  Fotos vigentes de la ficha: `fileName`, `contentType`, `sizeBytes` y `createdAt` de cada una.
+  **200** con la lista (vacía si el proveedor no tiene ninguna), **404** si el proveedor no existe.
+  `:id` toma `{{serviceSupplierId}}`.
+
+  Cada fila trae dos ids distintos: `id` es la foto dentro de la ficha, y es con el que se quita
+  (`DELETE …/photos/{photoId}`); `storedFileId` es el archivo, y es con el que se piden los bytes
+  a `/v1/files/{storedFileId}/content`.
+}

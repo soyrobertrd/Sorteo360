@@ -1,0 +1,23 @@
+meta {
+  name: Delete Round
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/rounds/:roundId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  roundId: {{roundId}}
+}
+
+docs {
+  Elimina una ronda **vacía**, y las que venían detrás bajan un número. **204**,
+  **409 ROUND_NOT_EMPTY** si todavía tiene premios (moverlos o eliminarlos primero; con el premio
+  de `Create Prizes` todavía en la ronda, esto es lo que responde), **404 ROUND_NOT_FOUND** si no
+  es de este sorteo.
+}

@@ -1,0 +1,52 @@
+meta {
+  name: Hand Over Prize
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/prizes/:prizeId/handover
+  body: multipartForm
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  prizeId: {{prizeId}}
+}
+
+body:multipart-form {
+  receiverName: María Pérez
+  receiverIdentityDocument: 001-1234567-8
+  receiverIsWinner: true
+  signature: @file(Raffles/firma.png)
+}
+
+docs {
+  Registra la entrega del premio a quien lo retira. Un formulario `multipart/form-data` con
+  `receiverName` (hasta 200), `receiverIdentityDocument` (hasta 100, texto libre),
+  `receiverIsWinner` (`true` o `false`, lo declara el operador) y `signature`, un PNG de hasta 1 MB.
+  Los cuatro son obligatorios, el documento también cuando retira el ganador: **400** si falta uno,
+  sobra de largo o no se entiende. `Raffles/firma.png` es un PNG de un píxel para probar.
+
+  La firma se reconoce por sus bytes: **400 FILE_TYPE_NOT_ALLOWED** si no es PNG,
+  **400 FILE_TYPE_MISMATCH** si dice ser lo que no es y **400 FILE_TOO_LARGE** por encima de 1 MB.
+  **200** con el premio entero: `state` en `redeemed`, y cada sorteo con su `redemptionCode`, su
+  `status` y sus `handovers`.
+
+  **409 RAFFLE_NOT_IN_PROGRESS** en `draft`, **409 PRIZE_NOT_DRAWN** sin ganador vivo y
+  **409 PRIZE_ALREADY_REDEEMED** si ya se entregó, en ese orden. Ninguno deja la fila ni la firma.
+  **503 FILE_STORE_UNAVAILABLE** con el almacenamiento caído. Se admite con el sorteo completado y
+  con el evento cerrado. Exige `raffles:draw`.
+
+  Desde la terminal:
+
+  ```
+  curl -X POST "$BASE_URL/v1/events/$EVENT_ID/raffle/prizes/$PRIZE_ID/handover" \
+    -H "Authorization: Bearer $TOKEN" \
+    -F "receiverName=María Pérez" \
+    -F "receiverIdentityDocument=001-1234567-8" \
+    -F "receiverIsWinner=true" \
+    -F "signature=@firma.png;type=image/png"
+  ```
+}

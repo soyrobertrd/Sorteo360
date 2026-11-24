@@ -1,0 +1,44 @@
+meta {
+  name: 13 Create Event Cascade
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "type": "Roadshow",
+    "name": "Roadshow Cascada (Bruno)",
+    "startDate": "2026-11-01",
+    "endDate": "2026-11-03",
+    "optOfficeId": "{{optOfficeId}}",
+    "language": "es",
+    "city": "Roma",
+    "country": "Italia"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setVar("lcCascadeEventId", res.getBody());
+    console.log("lcCascadeEventId =", bru.getVar("lcCascadeEventId"));
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Evento aparte para el escenario B: se le abre una cotización y luego se cancela para
+  verificar la cascada.
+}

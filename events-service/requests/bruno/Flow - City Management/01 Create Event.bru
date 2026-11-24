@@ -1,0 +1,43 @@
+meta {
+  name: 01 Create Event
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "type": "Roadshow",
+    "name": "Roadshow Gestion de Ciudades (Bruno)",
+    "startDate": "2026-09-01",
+    "endDate": "2026-09-10",
+    "optOfficeId": "{{optOfficeId}}",
+    "language": "es",
+    "city": "Madrid",
+    "country": "España"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setVar("gcEventId", res.getBody());
+    console.log("gcEventId =", bru.getVar("gcEventId"));
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Escenario A: el evento nace con su única ciudad (Madrid).
+}

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The chassis carries Web plumbing (endpoint filters, results, health endpoints),
+       so it needs the ASP.NET Core shared framework without being a web host itself. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Result pattern / validation -->
+    <PackageReference Include="CSharpFunctionalExtensions" />
+    <PackageReference Include="FluentValidation" />
+    <!-- Data access: exception types translated by DbResult, and the DbContext registration -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.OpenApi" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- Health checks -->
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
+    <!-- Host composition: logging, API versioning and the OpenAPI document -->
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Asp.Versioning.Http" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <!-- Optional authentication (Keycloak) -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <!-- Outbound service-to-service HTTP: the resilience pipeline of the typed clients -->
+    <PackageReference Include="Polly.Core" />
+  </ItemGroup>
+
+</Project>

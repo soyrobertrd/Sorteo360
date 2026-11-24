@@ -1,0 +1,29 @@
+meta {
+  name: 11 Cancel Again - 409
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/cancel
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcEventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "reason": "Segundo intento; no debería aplicar."
+  }
+}
+
+assert {
+  res.status: eq 409
+}

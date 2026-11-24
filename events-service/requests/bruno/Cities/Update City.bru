@@ -1,0 +1,43 @@
+meta {
+  name: Update City
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/cities/:cityId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  cityId: {{cityId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Sevilla",
+    "country": "España",
+    "timeZone": "Europe/Madrid",
+    "date": "2026-09-04",
+    "displayOrder": 1
+  }
+}
+
+docs {
+  Corrige la ciudad del evento. Misma semántica que el PATCH del evento:
+  **reemplazo completo** de los campos mutables. Enviá SIEMPRE el set completo:
+  los opcionales que no mandes (`fecha`, `displayOrder`) quedan en null.
+
+  **Obligatorios:** `nombre`, `pais`, `timeZone` (id IANA; uno desconocido es
+  **400** `TIME_ZONE_UNKNOWN`). Regla: `displayOrder > 0`.
+
+  **200** con la ciudad actualizada (misma forma que en el detalle del evento),
+  **400** validación, **404** si el evento o la ciudad no existen, **409** si el
+  evento está en un estado terminal. Vale para un evento de cualquier tipo.
+}

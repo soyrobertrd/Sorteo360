@@ -1,0 +1,36 @@
+meta {
+  name: 04 Update Nonexistent City - 404
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/cities/:cityId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{gcEventId}}
+  cityId: 00000000-0000-0000-0000-000000000000
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Nunca",
+    "country": "Nunca",
+    "timeZone": "Europe/Madrid"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  La ciudad no pertenece al evento (o no existe): 404.
+}

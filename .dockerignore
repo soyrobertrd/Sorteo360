@@ -1,0 +1,61 @@
+# Exclusiones del contexto de build de la RAÍZ del repositorio.
+#
+# Todos los servicios .NET se construyen con `context: .` porque referencian el chasis
+# compartido shared/Sorteo360.Platform (ver sus respectivos Dockerfile). Con el
+# contexto en la raíz, todo el monorepo viajaría al daemon en cada build si no se
+# recorta acá. Este archivo lo usan todos los builds de contexto-raíz, así que solo
+# lista lo que ningún servicio necesita: los servicios hermanos NO se excluyen por
+# nombre, porque cada uno es el sujeto de su propio build (y su código fuente pesa
+# menos de 1 MB entre los tres — lo que domina el contexto son bin/obj y frontend).
+
+# Salidas de build (se recompilan dentro de la imagen). Es de lejos lo más pesado.
+**/bin/
+**/obj/
+
+# Historial de git: nada del build lo consulta.
+.git/
+.gitignore
+.gitattributes
+
+# El frontend: no forma parte de ninguna imagen de servicio .NET.
+frontend/
+
+# Árboles de dependencias de Node, estén donde estén: ninguna imagen .NET los lee.
+**/node_modules/
+
+# Documentación, infraestructura local y colecciones de requests.
+docs/
+infra/
+**/requests/
+**/*.md
+
+# Carpetas de trabajo de un servicio (borradores, capturas, PDFs intermedios). Nada del
+# build las lee y pesan más que el código fuente de los tres servicios juntos.
+**/tmp/
+crm-service/output/
+
+# Tests: no se incluyen en la imagen de runtime.
+**/*.Tests.Unit/
+**/*.Tests.Integration/
+
+# Orquestación local: la imagen no la necesita.
+docker-compose*.yml
+
+# Artefactos de IDE / editor.
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+.DS_Store
+
+# Secretos — nunca deben entrar en la imagen ni en el contexto.
+.env
+.env.*
+!.env.example
+**/*.Secrets.json
+**/appsettings.*.Local.json
+
+# El propio Dockerfile / dockerignore no se necesitan dentro del contexto.
+**/Dockerfile
+**/.dockerignore

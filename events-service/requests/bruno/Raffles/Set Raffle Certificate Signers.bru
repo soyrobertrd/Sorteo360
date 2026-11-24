@@ -1,0 +1,38 @@
+meta {
+  name: Set Raffle Certificate Signers
+  type: http
+  seq: 28
+}
+
+put {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/certificate-signers
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "signers": [
+      { "name": "Ana Pérez", "title": "Ministra de Turismo" },
+      { "name": "Luis Gómez", "title": "Director de Ferias" }
+    ]
+  }
+}
+
+docs {
+  Reemplaza los firmantes que el certificado de premio propone por omisión, en el orden de sus
+  líneas. `signers` es obligatoria: a lo sumo dos, cada uno con `name` y `title` de hasta 100
+  caracteres; una lista vacía los borra. Vale en cualquier estado del sorteo, completado incluido.
+
+  **204** si los guardó, **400** si la lista falta, trae más de dos o un firmante a medias,
+  **404 RAFFLE_NOT_FOUND** si el evento no tiene sorteo, **409 EVENT_NOT_EDITABLE** si el evento
+  está cerrado o cancelado. Exige `raffles:write`.
+}

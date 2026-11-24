@@ -1,0 +1,25 @@
+meta {
+  name: 08 Start Event
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/start
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq in_progress
+}
+
+docs {
+  Transición manual `planning → in_progress`. El cierre (paso siguiente) solo aplica desde
+  `in_progress`, por eso el evento se inicia antes de cerrarse.
+}

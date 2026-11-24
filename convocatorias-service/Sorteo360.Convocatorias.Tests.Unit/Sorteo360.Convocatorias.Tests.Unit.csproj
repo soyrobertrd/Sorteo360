@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="coverlet.msbuild" />
+    <!-- Escribe los libros de prueba de las cargas de lista. La versión la gobierna el
+         Directory.Packages.props de la raíz. -->
+    <PackageReference Include="MiniExcel" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sorteo360.Convocatorias.Core\Sorteo360.Convocatorias.Core.csproj" />
+    <ProjectReference Include="..\Sorteo360.Convocatorias.Infrastructure\Sorteo360.Convocatorias.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

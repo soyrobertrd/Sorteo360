@@ -1,0 +1,42 @@
+meta {
+  name: 10 Create Feria Event
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "type": "Feria",
+    "name": "Feria Turistica (Bruno)",
+    "startDate": "2026-12-01",
+    "endDate": "2026-12-03",
+    "optOfficeId": "{{optOfficeId}}",
+    "city": "Berlín",
+    "country": "Alemania"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setVar("gcFeriaEventId", res.getBody());
+    console.log("gcFeriaEventId =", bru.getVar("gcFeriaEventId"));
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Escenario C: un evento que no es Roadshow también corrige su ciudad.
+}

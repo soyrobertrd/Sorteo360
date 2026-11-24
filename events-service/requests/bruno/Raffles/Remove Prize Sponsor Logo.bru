@@ -1,0 +1,22 @@
+meta {
+  name: Remove Prize Sponsor Logo
+  type: http
+  seq: 27
+}
+
+delete {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/prizes/:prizeId/logo
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  prizeId: {{prizeId}}
+}
+
+docs {
+  Desenlaza el logo del patrocinador del premio. **204** lo tuviera o no; el archivo no se borra.
+  **404 PRIZE_NOT_FOUND** si no es de este sorteo, **409 PRIZE_HAS_DRAWS** si ya se sorteó. Exige
+  `raffles:write`.
+}

@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="../shared/Sorteo360.Platform/Sorteo360.Platform.csproj" />
+  <Project Path="Sorteo360.Convocatorias.Core/Sorteo360.Convocatorias.Core.csproj" />
+  <Project Path="Sorteo360.Convocatorias.Infrastructure/Sorteo360.Convocatorias.Infrastructure.csproj" />
+  <Project Path="Sorteo360.Convocatorias.Tests.Integration/Sorteo360.Convocatorias.Tests.Integration.csproj" />
+  <Project Path="Sorteo360.Convocatorias.Tests.Unit/Sorteo360.Convocatorias.Tests.Unit.csproj" />
+  <Project Path="Sorteo360.Convocatorias.Web/Sorteo360.Convocatorias.Web.csproj" />
+</Solution>

@@ -1,0 +1,405 @@
+@import 'tailwindcss';
+
+/* Tailwind v4 usa `prefers-color-scheme` por defecto para `dark:` — esta línea lo
+   cambia a responder a una clase `.dark` en un ancestro (la que theme.ts pone en
+   <html>), que es lo que necesita un toggle manual de tema. Sin esto, el botón de
+   modo oscuro cambia el estado pero ninguna utilidad `dark:` reacciona. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Los dos colores de marca. Por omisión, los del logo del cliente (azul marino y azul cielo);
+     Configuración → Marca los cambia y src/lib/branding.ts los escribe en <html>. Todo lo demás
+     de la paleta sale de estos dos. */
+  --brand-primary: #0d3b7d;
+  --brand-accent: #1ea2dc;
+  /* Texto legible sobre el primario, sea cual sea: negro o blanco según su luminancia relativa
+     (umbral WCAG AA). Donde el navegador ya tiene contrast-color(), lo reemplaza (abajo). */
+  --brand-primary-contrast: color(
+    from var(--brand-primary) xyz-d65 calc(max(0, sign(0.17913 - y)) * 0.9505)
+      max(0, sign(0.17913 - y)) calc(max(0, sign(0.17913 - y)) * 1.089)
+  );
+
+  --background: #f9f9ff;
+  --foreground: #181c23;
+
+  --card: #ffffff;
+  --card-foreground: #181c23;
+
+  --popover: #ffffff;
+  --popover-foreground: #181c23;
+
+  --primary: var(--brand-primary);
+  --primary-foreground: var(--brand-primary-contrast);
+  --primary-container: color-mix(in oklab, var(--brand-primary), white 22%);
+  --on-primary-container: color-mix(in oklab, var(--brand-primary), white 50%);
+
+  --secondary: color-mix(in oklab, var(--brand-primary), white 22%);
+  --secondary-foreground: #ffffff;
+  --secondary-container: color-mix(in oklab, var(--brand-primary), white 70%);
+
+  --tertiary: #390400;
+  --tertiary-container: #5f0a00;
+
+  --muted: #eaecf7;
+  --muted-foreground: #454650;
+
+  --accent: #eaecf7;
+  --accent-foreground: var(--brand-primary);
+
+  --destructive: #ff3814;
+  --destructive-foreground: #ffffff;
+
+  --border: #eaecf7;
+  --input: #eaecf7;
+  --ring: var(--brand-primary);
+
+  --radius: 0.5rem;
+
+  --chart-1: var(--brand-accent);
+  --chart-2: #179f45;
+  --chart-3: #b01366;
+  --chart-4: #f6b52c;
+  --chart-5: #ea682c;
+}
+
+.dark {
+  --background: #181c23;
+  --foreground: #eef0fb;
+
+  --card: #20242e;
+  --card-foreground: #eef0fb;
+
+  --popover: #20242e;
+  --popover-foreground: #eef0fb;
+
+  --primary: color-mix(in oklab, var(--brand-primary), white 50%);
+  --primary-foreground: var(--brand-primary);
+  --primary-container: var(--brand-primary);
+
+  --secondary: color-mix(in oklab, var(--brand-primary), white 62%);
+  --secondary-foreground: #181c23;
+
+  --muted: #2d3039;
+  --muted-foreground: #c6c5d1;
+
+  --accent: #2d3039;
+  --accent-foreground: #eef0fb;
+
+  --destructive: #ff5f41;
+  --destructive-foreground: #ffffff;
+
+  --border: #2d3039;
+  --input: #2d3039;
+  --ring: color-mix(in oklab, var(--brand-primary), white 45%);
+}
+
+@supports (color: contrast-color(red)) {
+  :root {
+    --brand-primary-contrast: contrast-color(var(--brand-primary));
+  }
+}
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --font-body: 'Roboto', sans-serif;
+
+  /* Utilidades de marca (bg-brand, text-brand-deep, border-brand-accent...): siguen a los
+     colores que se eligen en Configuración. */
+  --color-brand: var(--brand-primary);
+  --color-brand-deep: color-mix(in oklab, var(--brand-primary), black 35%);
+  --color-brand-accent: var(--brand-accent);
+
+  /* Los acentos azules de Tailwind (blue, sky, indigo, teal, cyan) salen del acento de la marca,
+     así cada utilidad existente (bg-blue-50, text-sky-600...) cambia con él. Verde, ámbar,
+     naranja y magenta quedan fijos: son colores de estado, no de marca. */
+  --color-blue-50: color-mix(in oklab, var(--brand-accent) 8%, white);
+  --color-blue-100: color-mix(in oklab, var(--brand-accent) 16%, white);
+  --color-blue-200: color-mix(in oklab, var(--brand-accent) 30%, white);
+  --color-blue-300: color-mix(in oklab, var(--brand-accent) 50%, white);
+  --color-blue-400: color-mix(in oklab, var(--brand-accent) 75%, white);
+  --color-blue-500: var(--brand-accent);
+  --color-blue-600: color-mix(in oklab, var(--brand-accent), black 12%);
+  --color-blue-700: color-mix(in oklab, var(--brand-accent), black 25%);
+  --color-blue-800: color-mix(in oklab, var(--brand-accent), black 40%);
+  --color-blue-900: color-mix(in oklab, var(--brand-accent), black 55%);
+  --color-blue-950: color-mix(in oklab, var(--brand-accent), black 70%);
+  --color-sky-50: color-mix(in oklab, var(--brand-accent) 8%, white);
+  --color-sky-100: color-mix(in oklab, var(--brand-accent) 16%, white);
+  --color-sky-200: color-mix(in oklab, var(--brand-accent) 30%, white);
+  --color-sky-300: color-mix(in oklab, var(--brand-accent) 50%, white);
+  --color-sky-400: color-mix(in oklab, var(--brand-accent) 75%, white);
+  --color-sky-500: var(--brand-accent);
+  --color-sky-600: color-mix(in oklab, var(--brand-accent), black 12%);
+  --color-sky-700: color-mix(in oklab, var(--brand-accent), black 25%);
+  --color-sky-800: color-mix(in oklab, var(--brand-accent), black 40%);
+  --color-sky-900: color-mix(in oklab, var(--brand-accent), black 55%);
+  --color-sky-950: color-mix(in oklab, var(--brand-accent), black 70%);
+  --color-indigo-50: color-mix(in oklab, var(--brand-accent) 8%, white);
+  --color-indigo-100: color-mix(in oklab, var(--brand-accent) 16%, white);
+  --color-indigo-200: color-mix(in oklab, var(--brand-accent) 30%, white);
+  --color-indigo-300: color-mix(in oklab, var(--brand-accent) 50%, white);
+  --color-indigo-400: color-mix(in oklab, var(--brand-accent) 75%, white);
+  --color-indigo-500: var(--brand-accent);
+  --color-indigo-600: color-mix(in oklab, var(--brand-accent), black 12%);
+  --color-indigo-700: color-mix(in oklab, var(--brand-accent), black 25%);
+  --color-indigo-800: color-mix(in oklab, var(--brand-accent), black 40%);
+  --color-indigo-900: color-mix(in oklab, var(--brand-accent), black 55%);
+  --color-indigo-950: color-mix(in oklab, var(--brand-accent), black 70%);
+  --color-teal-50: color-mix(in oklab, var(--brand-accent) 8%, white);
+  --color-teal-100: color-mix(in oklab, var(--brand-accent) 16%, white);
+  --color-teal-200: color-mix(in oklab, var(--brand-accent) 30%, white);
+  --color-teal-300: color-mix(in oklab, var(--brand-accent) 50%, white);
+  --color-teal-400: color-mix(in oklab, var(--brand-accent) 75%, white);
+  --color-teal-500: var(--brand-accent);
+  --color-teal-600: color-mix(in oklab, var(--brand-accent), black 12%);
+  --color-teal-700: color-mix(in oklab, var(--brand-accent), black 25%);
+  --color-teal-800: color-mix(in oklab, var(--brand-accent), black 40%);
+  --color-teal-900: color-mix(in oklab, var(--brand-accent), black 55%);
+  --color-teal-950: color-mix(in oklab, var(--brand-accent), black 70%);
+  --color-cyan-50: color-mix(in oklab, var(--brand-accent) 8%, white);
+  --color-cyan-100: color-mix(in oklab, var(--brand-accent) 16%, white);
+  --color-cyan-200: color-mix(in oklab, var(--brand-accent) 30%, white);
+  --color-cyan-300: color-mix(in oklab, var(--brand-accent) 50%, white);
+  --color-cyan-400: color-mix(in oklab, var(--brand-accent) 75%, white);
+  --color-cyan-500: var(--brand-accent);
+  --color-cyan-600: color-mix(in oklab, var(--brand-accent), black 12%);
+  --color-cyan-700: color-mix(in oklab, var(--brand-accent), black 25%);
+  --color-cyan-800: color-mix(in oklab, var(--brand-accent), black 40%);
+  --color-cyan-900: color-mix(in oklab, var(--brand-accent), black 55%);
+  --color-cyan-950: color-mix(in oklab, var(--brand-accent), black 70%);
+  --color-emerald-50: color-mix(in oklab, #179f45 8%, white);
+  --color-emerald-100: color-mix(in oklab, #179f45 16%, white);
+  --color-emerald-200: color-mix(in oklab, #179f45 30%, white);
+  --color-emerald-300: color-mix(in oklab, #179f45 50%, white);
+  --color-emerald-400: color-mix(in oklab, #179f45 75%, white);
+  --color-emerald-500: #179f45;
+  --color-emerald-600: color-mix(in oklab, #179f45, black 12%);
+  --color-emerald-700: color-mix(in oklab, #179f45, black 25%);
+  --color-emerald-800: color-mix(in oklab, #179f45, black 40%);
+  --color-emerald-900: color-mix(in oklab, #179f45, black 55%);
+  --color-emerald-950: color-mix(in oklab, #179f45, black 70%);
+  --color-green-50: color-mix(in oklab, #179f45 8%, white);
+  --color-green-100: color-mix(in oklab, #179f45 16%, white);
+  --color-green-200: color-mix(in oklab, #179f45 30%, white);
+  --color-green-300: color-mix(in oklab, #179f45 50%, white);
+  --color-green-400: color-mix(in oklab, #179f45 75%, white);
+  --color-green-500: #179f45;
+  --color-green-600: color-mix(in oklab, #179f45, black 12%);
+  --color-green-700: color-mix(in oklab, #179f45, black 25%);
+  --color-green-800: color-mix(in oklab, #179f45, black 40%);
+  --color-green-900: color-mix(in oklab, #179f45, black 55%);
+  --color-green-950: color-mix(in oklab, #179f45, black 70%);
+  --color-amber-50: color-mix(in oklab, #f6b52c 8%, white);
+  --color-amber-100: color-mix(in oklab, #f6b52c 16%, white);
+  --color-amber-200: color-mix(in oklab, #f6b52c 30%, white);
+  --color-amber-300: color-mix(in oklab, #f6b52c 50%, white);
+  --color-amber-400: color-mix(in oklab, #f6b52c 75%, white);
+  --color-amber-500: #f6b52c;
+  --color-amber-600: color-mix(in oklab, #f6b52c, black 12%);
+  --color-amber-700: color-mix(in oklab, #f6b52c, black 25%);
+  --color-amber-800: color-mix(in oklab, #f6b52c, black 40%);
+  --color-amber-900: color-mix(in oklab, #f6b52c, black 55%);
+  --color-amber-950: color-mix(in oklab, #f6b52c, black 70%);
+  --color-yellow-50: color-mix(in oklab, #f6b52c 8%, white);
+  --color-yellow-100: color-mix(in oklab, #f6b52c 16%, white);
+  --color-yellow-200: color-mix(in oklab, #f6b52c 30%, white);
+  --color-yellow-300: color-mix(in oklab, #f6b52c 50%, white);
+  --color-yellow-400: color-mix(in oklab, #f6b52c 75%, white);
+  --color-yellow-500: #f6b52c;
+  --color-yellow-600: color-mix(in oklab, #f6b52c, black 12%);
+  --color-yellow-700: color-mix(in oklab, #f6b52c, black 25%);
+  --color-yellow-800: color-mix(in oklab, #f6b52c, black 40%);
+  --color-yellow-900: color-mix(in oklab, #f6b52c, black 55%);
+  --color-yellow-950: color-mix(in oklab, #f6b52c, black 70%);
+  --color-orange-50: color-mix(in oklab, #ea682c 8%, white);
+  --color-orange-100: color-mix(in oklab, #ea682c 16%, white);
+  --color-orange-200: color-mix(in oklab, #ea682c 30%, white);
+  --color-orange-300: color-mix(in oklab, #ea682c 50%, white);
+  --color-orange-400: color-mix(in oklab, #ea682c 75%, white);
+  --color-orange-500: #ea682c;
+  --color-orange-600: color-mix(in oklab, #ea682c, black 12%);
+  --color-orange-700: color-mix(in oklab, #ea682c, black 25%);
+  --color-orange-800: color-mix(in oklab, #ea682c, black 40%);
+  --color-orange-900: color-mix(in oklab, #ea682c, black 55%);
+  --color-orange-950: color-mix(in oklab, #ea682c, black 70%);
+  --color-rose-50: color-mix(in oklab, #b01366 8%, white);
+  --color-rose-100: color-mix(in oklab, #b01366 16%, white);
+  --color-rose-200: color-mix(in oklab, #b01366 30%, white);
+  --color-rose-300: color-mix(in oklab, #b01366 50%, white);
+  --color-rose-400: color-mix(in oklab, #b01366 75%, white);
+  --color-rose-500: #b01366;
+  --color-rose-600: color-mix(in oklab, #b01366, black 12%);
+  --color-rose-700: color-mix(in oklab, #b01366, black 25%);
+  --color-rose-800: color-mix(in oklab, #b01366, black 40%);
+  --color-rose-900: color-mix(in oklab, #b01366, black 55%);
+  --color-rose-950: color-mix(in oklab, #b01366, black 70%);
+  --color-pink-50: color-mix(in oklab, #b01366 8%, white);
+  --color-pink-100: color-mix(in oklab, #b01366 16%, white);
+  --color-pink-200: color-mix(in oklab, #b01366 30%, white);
+  --color-pink-300: color-mix(in oklab, #b01366 50%, white);
+  --color-pink-400: color-mix(in oklab, #b01366 75%, white);
+  --color-pink-500: #b01366;
+  --color-pink-600: color-mix(in oklab, #b01366, black 12%);
+  --color-pink-700: color-mix(in oklab, #b01366, black 25%);
+  --color-pink-800: color-mix(in oklab, #b01366, black 40%);
+  --color-pink-900: color-mix(in oklab, #b01366, black 55%);
+  --color-pink-950: color-mix(in oklab, #b01366, black 70%);
+  --color-purple-50: color-mix(in oklab, #b01366 8%, white);
+  --color-purple-100: color-mix(in oklab, #b01366 16%, white);
+  --color-purple-200: color-mix(in oklab, #b01366 30%, white);
+  --color-purple-300: color-mix(in oklab, #b01366 50%, white);
+  --color-purple-400: color-mix(in oklab, #b01366 75%, white);
+  --color-purple-500: #b01366;
+  --color-purple-600: color-mix(in oklab, #b01366, black 12%);
+  --color-purple-700: color-mix(in oklab, #b01366, black 25%);
+  --color-purple-800: color-mix(in oklab, #b01366, black 40%);
+  --color-purple-900: color-mix(in oklab, #b01366, black 55%);
+  --color-purple-950: color-mix(in oklab, #b01366, black 70%);
+  --color-fuchsia-50: color-mix(in oklab, #b01366 8%, white);
+  --color-fuchsia-100: color-mix(in oklab, #b01366 16%, white);
+  --color-fuchsia-200: color-mix(in oklab, #b01366 30%, white);
+  --color-fuchsia-300: color-mix(in oklab, #b01366 50%, white);
+  --color-fuchsia-400: color-mix(in oklab, #b01366 75%, white);
+  --color-fuchsia-500: #b01366;
+  --color-fuchsia-600: color-mix(in oklab, #b01366, black 12%);
+  --color-fuchsia-700: color-mix(in oklab, #b01366, black 25%);
+  --color-fuchsia-800: color-mix(in oklab, #b01366, black 40%);
+  --color-fuchsia-900: color-mix(in oklab, #b01366, black 55%);
+  --color-fuchsia-950: color-mix(in oklab, #b01366, black 70%);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Roboto', sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Inter', sans-serif;
+}
+
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']) {
+  cursor: pointer;
+}
+
+/* La flecha de los <Select> del sistema: la misma del alta de edición de feria, en vez de la
+   nativa de cada navegador. */
+.select-chevron {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.25rem;
+}
+
+/* Quitar controles de incremento/decremento (spinners) por defecto en inputs numéricos */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Autorrelleno del navegador sin su fondo azul: el formulario público de coexpositores se ve
+   igual lleno a mano que lleno solo. Es opt-in (solo dentro de `.sin-autorrelleno-azul`) para no
+   cambiar los demás formularios de la app. El fondo azul de Chrome no se puede quitar con
+   `background`, así que se aplaza su cambio de color de forma indefinida, y el texto conserva el
+   color del campo (claro u oscuro). Firefox lo llama `:autofill`; Chrome y Safari, el prefijado.
+   Son dos reglas aparte: si un navegador no entiende un selector, descarta toda la lista. */
+.sin-autorrelleno-azul :is(input, select, textarea):-webkit-autofill,
+.sin-autorrelleno-azul :is(input, select, textarea):-webkit-autofill:hover,
+.sin-autorrelleno-azul :is(input, select, textarea):-webkit-autofill:focus {
+  -webkit-text-fill-color: currentColor;
+  caret-color: currentColor;
+  transition: background-color 600000s ease-in-out 0s;
+}
+
+.sin-autorrelleno-azul :is(input, select, textarea):autofill {
+  background-color: transparent;
+  -webkit-text-fill-color: currentColor;
+}
+
+/* Barra de desplazamiento horizontal siempre visible para tablas en desktop y tablets */
+.table-scrollbar {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: auto;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.table-scrollbar::-webkit-scrollbar {
+  height: 10px;
+  display: block;
+}
+
+.table-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+}
+
+.table-scrollbar::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 9999px;
+  border: 2px solid #f1f5f9;
+}
+
+.table-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.dark .table-scrollbar {
+  scrollbar-color: #64748b #1e293b;
+}
+
+.dark .table-scrollbar::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark .table-scrollbar::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border: 2px solid #1e293b;
+}
+
+.dark .table-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* El nombre del premio en el tablero de ganadores usa la tipografía de la plantilla de
+   Banreservas (Freight Sans Bold). Es una fuente con licencia: se toma la instalada en el equipo
+   del salón; para servirla, poner el .woff2 que entregue el cliente en public/fonts/ y sumar
+   `url('/fonts/freight_sansbold.woff2') format('woff2')` a `src`. Sin ella cae a sans-serif. */
+@font-face {
+  font-family: 'freight_sansbold';
+  src: local('Freight Sans Bold'), local('FreightSans-Bold'), local('FreightSansBold');
+  font-display: swap;
+}
+
+@theme {
+  --font-premio: 'freight_sansbold', sans-serif;
+}
+
+/* Los tokens semánticos como utilidades (bg-card, text-foreground, bg-muted…). `inline` hace
+   que la utilidad lea la variable al pintar, así siguen al modo oscuro y a la marca. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+}

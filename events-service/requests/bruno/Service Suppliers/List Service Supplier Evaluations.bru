@@ -1,0 +1,22 @@
+meta {
+  name: List Service Supplier Evaluations
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/service-suppliers/:id/evaluations
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: {{serviceSupplierId}}
+}
+
+docs {
+  Las evaluaciones de desempeño del proveedor, una por evento, la calificada más recientemente
+  primero y con el nombre del evento. **200** con la lista (vacía si nadie lo calificó todavía),
+  **404** si el proveedor no existe. `beforeReset: true` marca las anteriores al último reinicio,
+  que ya no cuentan en el promedio.
+}

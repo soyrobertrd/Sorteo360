@@ -1,0 +1,21 @@
+meta {
+  name: Get Raffle
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+docs {
+  El sorteo del evento con su configuración, sus autoridades y sus rondas por número, cada una con
+  sus premios por orden de creación. **200**, **404 RAFFLE_NOT_FOUND** si el evento no tiene sorteo,
+  **404 EVENT_NOT_FOUND** si el evento no existe. Se lee en cualquier estado del evento.
+}

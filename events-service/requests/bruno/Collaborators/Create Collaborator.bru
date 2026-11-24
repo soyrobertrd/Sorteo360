@@ -1,0 +1,42 @@
+meta {
+  name: Create Collaborator
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{crmBaseUrl}}/v{{apiVersion}}/collaborators
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "hrId": {{hrId}},
+    "address": "Av. 27 de Febrero, Santo Domingo"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setVar("collaboratorId", res.getBody().id);
+    console.log("collaboratorId =", bru.getVar("collaboratorId"));
+  }
+}
+
+docs {
+  Registra al empleado de Recursos Humanos elegido. El cuerpo es solo `hrId`
+  (obligatorio) y `address`: la cédula, el nombre, el departamento (y con él la
+  OPT), el cargo, el correo y el celular los copia el CRM de esa fila, y el
+  estado es `Active`.
+
+  **201** con el colaborador, la cédula enmascarada. **400**
+  `collaborator.hr_employee_not_found` si el `hrId` no es de un empleado activo.
+  **409** `collaborator.duplicate_cedula` si ya está registrado. **503**
+  `collaborator.hr_unavailable` si la lista no estaba cargada y Recursos
+  Humanos no respondió; no registra nada.
+}

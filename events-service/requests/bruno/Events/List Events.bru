@@ -1,0 +1,64 @@
+meta {
+  name: List Events
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/events?page=1&pageSize=20
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 1
+  pageSize: 20
+  ~type: Roadshow
+  ~status: planning
+  ~active: true
+  ~visibility: public
+  ~startDateFrom: 2026-01-01
+  ~startDateTo: 2026-12-31
+  ~searchTerm: roadshow
+  ~optOfficeId: 00000000-0000-0000-0000-000000000000
+  ~sortField: totalCost
+  ~sortOrder: desc
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Listado paginado y filtrable. Devuelve un sobre `{ total, page, pageSize, items[] }`.
+  Todos los filtros son opcionales (activá los que necesites desde la pestaña Query).
+
+  | Param | Tipo | Notas |
+  | --- | --- | --- |
+  | `page` | int | default 1 |
+  | `pageSize` | int | default 20, máximo 100 |
+  | `type` | string | Roadshow \| Feria \| Tradeshow \| Webinar (case-insensitive) |
+  | `status` | string | planning \| in_progress \| closed \| cancelled |
+  | `active` | bool | `true` = solo planning/in_progress; excluyente con `status` |
+  | `visibility` | string | public \| private (case-insensitive); omitido trae las dos |
+  | `startDateFrom` | date | yyyy-MM-dd, inclusive |
+  | `startDateTo` | date | yyyy-MM-dd, inclusive |
+  | `searchTerm` | string | busca en el nombre del evento, sin distinguir mayúsculas |
+  | `optOfficeId` | uuid | la OPT dueña del evento, por id (sale de `GET /v1/opts` en crm-service) |
+  | `sortField` | string | name \| startDate \| status \| totalCost |
+  | `sortOrder` | string | asc \| desc |
+
+  Los filtros se combinan y `total` cuenta las coincidencias, no la tabla entera.
+
+  Sin ninguno de los dos, el orden es fecha de inicio desc; con `sortField` y sin
+  `sortOrder`, asc. Un `sortOrder` solo se aplica a la fecha de inicio. El desempate es
+  siempre CreatedAt desc y luego Id.
+
+  Ordenar por `status` sigue el ciclo de vida, no el alfabeto. Ordenar por `totalCost`
+  agrupa por moneda con USD primero y ordena por monto dentro de cada grupo; el sentido
+  invierte el monto y nada más, así que USD queda primero y los eventos sin costo total
+  quedan al final en los dos sentidos.
+
+  Un `sortField` o un `sortOrder` fuera de su conjunto responde 400 con
+  `EVENT_SORT_FIELD_NOT_SUPPORTED` o `EVENT_SORT_ORDER_NOT_SUPPORTED`.
+}

@@ -1,0 +1,32 @@
+meta {
+  name: 05 Submit Quote
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/categories/:category/quote/submit
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  category: {{category}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "exceptionReason": "single_provider",
+    "exceptionJustification": "Único proveedor disponible para la categoría y fecha (flujo E2E)."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq submitted
+}

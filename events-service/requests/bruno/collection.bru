@@ -1,0 +1,137 @@
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+script:pre-request {
+  // Autenticación automática contra Keycloak (ADR-0004).
+  //
+  // Pide un token con el grant `password` del client público `pgti360-app`
+  // (directAccessGrantsEnabled) usando `username`/`password` del environment, lo
+  // cachea en la env var `token` y lo renueva ~30s antes de expirar. Todos los
+  // requests heredan `auth: bearer {{token}}` desde esta colección.
+  //
+  // Se saltea los health checks (anónimos) y el propio endpoint de token, para que
+  // funcionen aunque Keycloak no esté listo o el usuario no exista.
+  const url = (typeof req !== "undefined" && req.getUrl && req.getUrl()) || "";
+  const isHealth = /\/_alive|\/_ready|\/_health/.test(url);
+  const isTokenEndpoint = /\/protocol\/openid-connect\/token/.test(url);
+  if (isHealth || isTokenEndpoint) {
+    return;
+  }
+
+  // Token y expiración se guardan como vars de runtime (bru.setVar): no se escriben
+  // a disco, así que nunca se commitea un token al environment.
+  const now = Date.now();
+  const exp = Number(bru.getVar("tokenExp") || 0);
+  const currentToken = bru.getVar("token");
+  if (currentToken && now < exp) {
+    return; // token en cache todavía vigente
+  }
+
+  const axios = require("axios");
+  const kcUrl = bru.getEnvVar("keycloakUrl");
+  const realm = bru.getEnvVar("realm");
+  const clientId = bru.getEnvVar("authClientId");
+  const username = bru.getEnvVar("username");
+  const password = bru.getEnvVar("password");
+
+  const form =
+    "grant_type=password" +
+    "&client_id=" + encodeURIComponent(clientId) +
+    "&username=" + encodeURIComponent(username) +
+    "&password=" + encodeURIComponent(password) +
+    "&scope=openid";
+
+  const resp = await axios.post(
+    `${kcUrl}/realms/${realm}/protocol/openid-connect/token`,
+    form,
+    { headers: { "Content-Type": "application/x-www-form-urlencoded" } },
+  );
+
+  bru.setVar("token", resp.data.access_token);
+  bru.setVar("tokenExp", String(now + (resp.data.expires_in - 30) * 1000));
+}
+
+docs {
+  # MiTur PGTI360 — Events API
+
+  Colección Bruno para el `events-service`. Todas las rutas están versionadas bajo
+  `v1` (`{{baseUrl}}/v{{apiVersion}}/...`). Los endpoints de salud (`/_alive`, `/_ready`,
+  `/_health`) NO llevan versión.
+
+  ## Cómo usarla
+  1. Levantá el stack (incluye Keycloak): `COMPOSE_PROFILES=all docker compose up -d`
+     (o al menos `events` + `keycloak`, más `postgres`/`redis`).
+  2. Seleccioná el environment **Local** (arriba a la derecha).
+  3. Probá `Health/Alive` → 200 (no requiere token).
+  4. El resto de los requests se **autentican solos**: la colección pide un token a
+     Keycloak antes de cada request y lo cachea (ver "Autenticación"). No hace falta
+     pegar tokens a mano.
+  5. Para el alta completa de un evento, ejecutá la carpeta
+     **Flow - Create Event E2E** con el runner (click derecho → Run).
+  6. Para el ciclo de vida completo (iniciar, editar, cancelar + cascada y los
+     rechazos 400/409), ejecutá **Flow - Event Lifecycle** con el runner.
+
+  ## Ciclo de vida del evento
+  `planning → in_progress → closed`, y `cancelled` desde cualquier estado no terminal.
+  Transiciones manuales: `POST /start` (solo desde planning), `POST /cancel` (razón
+  obligatoria; soft-cancela las cotizaciones abiertas), `POST /close` (solo desde
+  in_progress; materializa `totalCost`). `PATCH /events/{id}` edita los campos mutables
+  mientras el evento no sea terminal (`type` inmutable, `totalCost` no editable).
+
+  ## Autenticación (Keycloak — ADR-0004)
+  El servicio exige un **JWT bearer** emitido por el realm `pgti360` de Keycloak en todo
+  endpoint salvo los health checks (`AllowAnonymous`). Valida emisor, audiencia
+  (`aud: events-api`) y lee los roles del claim plano `roles`.
+
+  **La colección se autentica automáticamente.** El bloque `auth` de esta colección usa
+  `bearer {{token}}` y el `script:pre-request` de arriba obtiene/renueva ese token contra
+  Keycloak con el grant `password` del client público `pgti360-app`, usando las variables
+  `username` / `password` del environment. El token se cachea en `token` (con su expiración
+  en `tokenExp`) y se reutiliza hasta ~30s antes de vencer.
+
+  Para inspeccionar el token o forzar una renovación manual, usá el request
+  **`Auth/Get Token`** (imprime en consola el usuario y sus roles).
+
+  ### Probar el modelo de roles (403)
+  Los usuarios de prueba tienen distinto alcance (roles compuestos del realm):
+
+  | Usuario         | Rol compuesto  | Puede además de leer/crear… |
+  | --------------- | -------------- | --------------------------- |
+  | `gestor`        | `opt_coordinator` | editar, someter cotización, iniciar evento, mantener proveedores |
+  | `direccion`     | `opt_director` | todo lo de la coordinación **+ cancelar/close eventos, eliminar proveedores** |
+  | `admin.pgti360` | `central_admin` | todos los permisos funcionales |
+
+  El environment usa `direccion` por defecto (tiene todos los permisos, así que todos los
+  flujos pasan). Para ver una acción **denegada con 403** (p. ej. `Cancel Event` o
+  `Delete Service Supplier`), cambiá en el environment `username` a `gestor`, corré `Auth/Get Token`
+  (renueva el token de runtime con el nuevo usuario) y reintentá. Password de todos: `localdev`.
+
+  > `token` / `tokenExp` se manejan como **vars de runtime** (`bru.setVar`), no se escriben al
+  > environment ni al disco; por eso no se commitean tokens. Las vars vacías `token`/`tokenExp`
+  > del environment quedan solo como placeholders visibles.
+
+  > Todos los requests heredan la auth de la colección (`auth: inherit`), salvo `Health/*`
+  > y `Auth/Get Token` que van con `auth: none`.
+
+  ## Valores permitidos
+  - **Evento type:** `Roadshow`, `Feria`, `Tradeshow`, `Webinar`
+  - **Evento status (filtro):** `planning`, `in_progress`, `closed`, `cancelled`
+  - **Idioma (language):** `es`, `en`, `fr`, `de`, `pt`, `it`
+  - **Categoría proveedor:** `Venue`, `Ambientacion`, `Audiovisuales`, `Seguridad`,
+    `Traductores`, `Edecanes`, `Alimentacion`, `Transporte`, `Fotografia`, `Produccion`,
+    `Tecnologia`, `Mobiliario`, `Entretenimiento`, `Limpieza`, `Logistica`
+  - **exceptionReason:** `single_provider`, `single_provider_date`, `otro`
+  - **currency:** `USD`, `EUR`
+
+  ## Variables de runtime
+  El flujo E2E setea `eventId`, `serviceSupplierId` y `candidateId` automáticamente; el flujo
+  de ciclo de vida usa las suyas (`lcEventId`, `lcCascadeEventId`, `lcServiceSupplierId`) para
+  no pisarlas. Para requests sueltos podés cargarlas a mano en el environment **Local**.
+  Las vars de auth (`keycloakUrl`, `realm`, `authClientId`, `username`, `password`, `token`,
+  `tokenExp`) también viven en el environment.
+}

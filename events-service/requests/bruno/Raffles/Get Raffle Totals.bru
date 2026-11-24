@@ -1,0 +1,17 @@
+meta {
+  name: Get Raffle Totals
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/raffles/totals
+  body: none
+  auth: inherit
+}
+
+docs {
+  Las cifras de todos los sorteos juntos: `raffles`, `active` (en curso), `prizes`, `winners`
+  (sorteos de premio vivos), `redeemed` y `qualifiedParticipants`, que suma los bombos congelados,
+  así que un borrador no aporta. Sin rol propio, basta estar autenticado.
+}

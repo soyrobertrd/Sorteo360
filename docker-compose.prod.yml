@@ -1,0 +1,266 @@
+# ============================================================================
+# Stack de producción para Sorteo360 (autocontenido + Caddy HTTPS).
+#
+# Arranque:
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Perfiles soportados:
+#   - Infraestructura (postgres, keycloak, caddy): sin perfil, siempre arranca.
+#   - Servicios:
+#       events         -> events-service
+#       convocatorias  -> convocatorias-service
+#       notifications  -> notification-service
+#       frontend       -> SPA + nginx proxy
+# ============================================================================
+name: sorteo360-prod
+
+services:
+  postgres-certs:
+    build:
+      context: ./infra/postgres-setup
+      dockerfile: Dockerfile
+    image: sorteo360/postgres-certs:prod
+    command: ["sh", "/setup/certs.sh"]
+    volumes:
+      - ./infra/postgres-setup/certs.sh:/setup/certs.sh:ro
+      - postgres-tls:/tls
+      - postgres-ca:/ca
+    restart: "no"
+    networks: [sorteo360-prod-net]
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/etc/postgresql/tls/server.crt
+      - -c
+      - ssl_key_file=/etc/postgresql/tls/server.key
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sorteo360}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Definí POSTGRES_PASSWORD en .env.prod}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - postgres-tls:/etc/postgresql/tls:ro
+      - ./infra/postgres-setup/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    depends_on:
+      postgres-certs:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sorteo360} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [sorteo360-prod-net]
+
+  postgres-roles:
+    image: postgres:17-alpine
+    command: ["sh", "/setup/roles.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-sorteo360}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?}
+      PGSSLMODE: verify-full
+      PGSSLROOTCERT: /etc/postgresql-ca/ca.crt
+      EVENTS_DB_PASSWORD: ${EVENTS_DB_PASSWORD:?Definí EVENTS_DB_PASSWORD en .env.prod}
+      CONVOCATORIAS_DB_PASSWORD: ${CONVOCATORIAS_DB_PASSWORD:?Definí CONVOCATORIAS_DB_PASSWORD en .env.prod}
+      NOTIFICATIONS_DB_PASSWORD: ${NOTIFICATIONS_DB_PASSWORD:?Definí NOTIFICATIONS_DB_PASSWORD en .env.prod}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?Definí KEYCLOAK_DB_PASSWORD en .env.prod}
+    volumes:
+      - ./infra/postgres-setup/roles.sh:/setup/roles.sh:ro
+      - postgres-ca:/etc/postgresql-ca:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks: [sorteo360-prod-net]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6
+    restart: unless-stopped
+    command: ["start", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Definí KEYCLOAK_ADMIN_PASSWORD en .env.prod}
+      KC_DB: postgres
+      KC_DB_URL: "jdbc:postgresql://postgres:5432/keycloak?sslmode=verify-full&sslrootcert=/etc/postgresql-ca/ca.crt"
+      KC_DB_USERNAME: keycloak_app
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?}
+      KC_HOSTNAME: "https://${AUTH_DOMAIN:?Definí AUTH_DOMAIN en .env.prod}"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      EVENTS_SERVICE_CLIENT_SECRET: ${EVENTS_SERVICE_CLIENT_SECRET:?Definí EVENTS_SERVICE_CLIENT_SECRET en .env.prod}
+      CONVOCATORIAS_SERVICE_CLIENT_SECRET: ${CONVOCATORIAS_SERVICE_CLIENT_SECRET:?Definí CONVOCATORIAS_SERVICE_CLIENT_SECRET en .env.prod}
+    volumes:
+      - ./infra/keycloak/:/opt/keycloak/data/import:ro
+      - ./infra/keycloak-themes/:/opt/keycloak/themes:ro
+      - postgres-ca:/etc/postgresql-ca:ro
+    depends_on:
+      postgres-roles:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    networks: [sorteo360-prod-net]
+
+  events-service:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: events-service/Dockerfile
+    image: sorteo360/events-service:prod
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=events;Username=events_app;Password=${EVENTS_DB_PASSWORD:?};SSL Mode=VerifyFull;Root Certificate=/etc/postgresql-ca/ca.crt"
+      Keycloak__Authority: "http://keycloak:8080/realms/sorteo360"
+      Keycloak__Audience: "events-api"
+      # El mismo interruptor que el SPA: con false no existen /v1/accounts/signup ni /activate.
+      Accounts__SignupEnabled: "${SIGNUP_ENABLED:-false}"
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuer: "https://${AUTH_DOMAIN:?}/realms/sorteo360"
+      ServiceAuth__ClientId: "events-service"
+      ServiceAuth__ClientSecret: ${EVENTS_SERVICE_CLIENT_SECRET:?}
+      Services__Convocatorias__BaseUrl: "http://convocatorias-service:8080"
+      Services__Keycloak__BaseUrl: "http://keycloak:8080"
+      QuoteApprovers__Realm: "sorteo360"
+      Services__Notifications__BaseUrl: "http://notification-service:8080"
+      App__BaseUrl: "https://${APP_DOMAIN:?Definí APP_DOMAIN en .env.prod}"
+      Notifications__FromAddress: "${NOTIFICATIONS_FROM_ADDRESS:-no-reply@ejemplo.com}"
+      RaffleAttendance__CacheTtlSeconds: "${RAFFLE_ATTENDANCE_CACHE_TTL_SECONDS:-30}"
+      FileStore__Provider: "filesystem"
+      FileStore__Filesystem__RootPath: "/var/lib/sorteo360/files"
+      FileStore__MaxSizeBytes: "${FILE_MAX_SIZE_BYTES:-26214400}"
+      FileStore__MaxGalleryImagesPerEvent: "${FILE_MAX_GALLERY_IMAGES_PER_EVENT:-20}"
+    volumes:
+      - events-files:/var/lib/sorteo360/files
+      - postgres-ca:/etc/postgresql-ca:ro
+    depends_on:
+      postgres-roles:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+    networks: [sorteo360-prod-net]
+    profiles: [events]
+
+  convocatorias-service:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: convocatorias-service/Dockerfile
+    image: sorteo360/convocatorias-service:prod
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=convocatorias;Username=convocatorias_app;Password=${CONVOCATORIAS_DB_PASSWORD:?};SSL Mode=VerifyFull;Root Certificate=/etc/postgresql-ca/ca.crt"
+      Keycloak__Authority: "http://keycloak:8080/realms/sorteo360"
+      Keycloak__Audience: "convocatorias-api"
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuer: "https://${AUTH_DOMAIN:?}/realms/sorteo360"
+      ServiceAuth__ClientId: "convocatorias-service"
+      ServiceAuth__ClientSecret: ${CONVOCATORIAS_SERVICE_CLIENT_SECRET:?}
+      Services__Events__BaseUrl: "http://events-service:8080"
+      Services__Notifications__BaseUrl: "http://notification-service:8080"
+      Notifications__Transport: "${NOTIFICATIONS_TRANSPORT:-http}"
+      Notifications__FromAddress: "${NOTIFICATIONS_FROM_ADDRESS:-no-reply@ejemplo.com}"
+      Portal__BaseUrl: "https://${APP_DOMAIN:?}"
+      Reconciliation__StrandedCampaignAfter: "00:15:00"
+    volumes:
+      - postgres-ca:/etc/postgresql-ca:ro
+    depends_on:
+      postgres-roles:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+    networks: [sorteo360-prod-net]
+    profiles: [convocatorias]
+
+  notification-service:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    image: sorteo360/notification-service:prod
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=notifications;Username=notifications_app;Password=${NOTIFICATIONS_DB_PASSWORD:?};SSL Mode=VerifyFull;Root Certificate=/etc/postgresql-ca/ca.crt"
+      Keycloak__Authority: "http://keycloak:8080/realms/sorteo360"
+      Keycloak__Audience: "notifications-api"
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuer: "https://${AUTH_DOMAIN:?}/realms/sorteo360"
+      Smtp__Host: "${SMTP_HOST:-smtp.sendgrid.net}"
+      Smtp__Port: "${SMTP_PORT:-587}"
+      Smtp__RequireTls: "${SMTP_REQUIRE_TLS:-true}"
+      Smtp__Username: "${SMTP_USERNAME:-}"
+      Smtp__Password: "${SMTP_PASSWORD:-}"
+      Smtp__AllowExternalRelay: "${SMTP_ALLOW_EXTERNAL_RELAY:-true}"
+      SendGrid__EventWebhook__PublicKey: "${SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY:-}"
+      SendGrid__EventWebhook__Enabled: "${SENDGRID_EVENT_WEBHOOK_ENABLED:-true}"
+    volumes:
+      - postgres-ca:/etc/postgresql-ca:ro
+    depends_on:
+      postgres-roles:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+    networks: [sorteo360-prod-net]
+    profiles: [notifications]
+
+  frontend:
+    restart: unless-stopped
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_MODE: http
+        VITE_EVENTOS_API_URL: ""
+        VITE_KEYCLOAK_URL: "https://${AUTH_DOMAIN:?}"
+        VITE_SIGNUP_ENABLED: ${SIGNUP_ENABLED:-false}
+        VITE_CONTACT_EMAIL: ${CONTACT_EMAIL:-}
+    image: sorteo360/frontend:prod
+    depends_on:
+      events-service:
+        condition: service_healthy
+    networks: [sorteo360-prod-net]
+    profiles: [frontend]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?}
+      AUTH_DOMAIN: ${AUTH_DOMAIN:?}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - keycloak
+    networks: [sorteo360-prod-net]
+
+networks:
+  sorteo360-prod-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  postgres-tls:
+  postgres-ca:
+  events-files:
+  caddy-data:
+  caddy-config:
+

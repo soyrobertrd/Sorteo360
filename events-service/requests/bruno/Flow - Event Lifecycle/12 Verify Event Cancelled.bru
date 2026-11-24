@@ -1,0 +1,25 @@
+meta {
+  name: 12 Verify Event Cancelled
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcEventId}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq cancelled
+  res.body.cancellationReason: eq El cliente pospuso la gira (flujo Bruno).
+}
+
+docs {
+  Verificación del escenario A: el evento quedó `cancelled` y la razón quedó persistida.
+}

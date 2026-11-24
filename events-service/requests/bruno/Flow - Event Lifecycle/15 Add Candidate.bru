@@ -1,0 +1,38 @@
+meta {
+  name: 15 Add Candidate
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/categories/:category/quote/candidates
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcCascadeEventId}}
+  category: {{category}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "serviceSupplierId": "{{lcServiceSupplierId}}",
+    "proposal": {
+      "quoteText": "Cotización del flujo de ciclo de vida.",
+      "estimatedAmount": { "amount": 5000.00, "currency": "USD" }
+    }
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  El primer candidato crea la cotización de la categoría en `draft` de forma lazy.
+}

@@ -1,0 +1,40 @@
+meta {
+  name: 06 Patch in In Progress
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcEventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Roadshow Ciclo de Vida (en curso)",
+    "startDate": "2026-10-01",
+    "endDate": "2026-10-07",
+    "optOfficeId": "{{optOfficeId}}",
+    "language": "en",
+    "invitedCount": 95
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq in_progress
+  res.body.invitedCount: eq 95
+}
+
+docs {
+  Los campos de planificación siguen siendo editables mientras el evento no sea terminal.
+}

@@ -1,0 +1,694 @@
+/* Estilos propios del login de Sorteo360. Se cargan después de css/styles.css del
+   tema padre, así que ganan sin necesidad de !important.
+
+   Nada de lo que esta hoja pide sale a internet: el logo y las dos tipografías
+   viven en resources/ y los sirve el propio Keycloak. El porqué, el origen de
+   cada archivo y cómo regenerarlos están en ../../README.md.
+
+   El objetivo de la hoja es que quien entra por acá y cae en la aplicación no
+   sienta que cruzó una frontera: los valores son los de frontend/src/index.css y
+   los de sus componentes, copiados uno a uno. Los dos lados no comparten build,
+   así que un cambio de token allá es una edición acá, en el mismo PR. */
+
+/* Fuentes variables de un solo archivo, subconjunto latino, eje de peso completo
+   (100 a 900): un archivo por familia cubre todos los grosores.
+
+   El unicode-range se conserva a propósito aunque solo haya un subconjunto. Sin él
+   el navegador usaría esta fuente para cualquier carácter y dibujaría un cuadro
+   vacío en los que faltan; con él, un carácter fuera del rango cae a la siguiente
+   familia de la lista y se ve bien. El login está en español y el latino le sobra,
+   pero un nombre de usuario puede traer cualquier cosa. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../fonts/inter-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Roboto lleva font-stretch y Inter no porque el archivo de Roboto trae también
+   el eje de ancho; sin fijarlo en 100% el navegador puede elegir otra anchura. */
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('../fonts/roboto-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* La paleta de la aplicación. Cada línea dice de dónde sale: un token de
+   frontend/src/index.css o la clase de Tailwind que usa el componente.
+
+   Van en hexadecimal aunque la aplicación las escriba en oklch. Tailwind 4 define
+   su paleta en oklch y un navegador que no lo entienda descarta la declaración
+   entera y deja el color anterior de la cascada, que acá sería el de PatternFly:
+   la pantalla no falla, solo sale con los colores de Red Hat. El hexadecimal es la
+   conversión exacta de ese oklch y lo entiende cualquier navegador. */
+:root {
+  --sorteo360-background: #f9f9ff; /* --background */
+  --sorteo360-surface: #ffffff; /* --card */
+  --sorteo360-text: #181c23; /* --foreground */
+  --sorteo360-heading: #0f172b; /* text-slate-900 */
+  --sorteo360-label: #314158; /* text-slate-700 */
+  --sorteo360-muted: #62748e; /* text-slate-500 */
+  --sorteo360-divider: #e2e8f0; /* bg-slate-200 */
+  --sorteo360-input-border: #cad5e2; /* border-slate-300 */
+  --sorteo360-placeholder: #90a1b9; /* placeholder:text-slate-400 */
+  --sorteo360-disabled-bg: #f8fafc; /* disabled:bg-slate-50 */
+  --sorteo360-disabled-text: var(--sorteo360-muted); /* disabled:text-slate-500 */
+
+  --sorteo360-primary: #0d3b7d; /* azul marino del logo del cliente */
+  --sorteo360-on-primary: #ffffff; /* --primary-foreground */
+
+  /* El mismo azul un 10% más oscuro, para el hover del botón.
+     Es el único valor de esta lista que no sale de la aplicación, porque allá hoy no
+     existe: Button.tsx pide hover:bg-primary/90, y bg-primary no es una utilidad de
+     Tailwind 4 salvo que el token esté declarado dentro del bloque @theme, que es
+     donde frontend/src/index.css solo pone las dos familias tipográficas. En el CSS
+     compilado del frontend no queda una sola regla bg-primary. Es el mismo defecto
+     que deja muertos los anillos de foco de Field.tsx, y acá se dibuja la intención
+     y no el defecto. */
+  --sorteo360-primary-hover: #0a2f63;
+  --sorteo360-accent: #1ea2dc; /* azul cielo del logo */
+
+  /* border-slate-200/80 de Card.tsx. Se deja con alfa, no resuelto contra el
+     blanco, porque la tarjeta se apoya en el fondo de la página y no en blanco. */
+  --sorteo360-card-border: rgb(226 232 240 / 0.8);
+
+  /* El anillo de foco, el mismo en el campo, el botón del ojo y el botón principal. */
+  --sorteo360-focus-ring: 2px solid var(--sorteo360-primary);
+
+  --sorteo360-radius-input: 0.75rem;
+  --sorteo360-radius-card: 1.25rem;
+  --sorteo360-shadow-card: 0 24px 60px -20px rgb(4 20 52 / 0.55), 0 2px 6px rgb(4 20 52 / 0.12);
+
+  --sorteo360-font-size-sm: 0.875rem; /* text-sm */
+  --sorteo360-line-height-sm: 1.25rem; /* text-sm */
+  --sorteo360-font-size-xs: 0.75rem; /* text-xs */
+
+  /* Los cuatro tonos de aviso. El rojo y el ámbar son los de ErrorNote y
+     WarningNote (components/ui/Feedback.tsx); el azul y el verde no tienen
+     componente en la aplicación y salen de la misma familia de Tailwind con los
+     mismos escalones, 50 de fondo, 200 de borde y 800 o 900 de texto. */
+  --sorteo360-danger-bg: #fef2f2; /* bg-red-50 */
+  --sorteo360-danger-border: #ffc9c9; /* border-red-200 */
+  --sorteo360-danger-text: #9f0712; /* text-red-800 */
+  --sorteo360-danger-strong: #e7000b; /* text-red-600, el error bajo el campo */
+
+  --sorteo360-warning-bg: #fffbeb; /* bg-amber-50 */
+  --sorteo360-warning-border: #fee685; /* border-amber-200 */
+  --sorteo360-warning-text: #7b3306; /* text-amber-900 */
+
+  --sorteo360-info-bg: #eff6ff; /* bg-blue-50 */
+  --sorteo360-info-border: #bedbff; /* border-blue-200 */
+  --sorteo360-info-text: #193cb8; /* text-blue-800 */
+
+  --sorteo360-success-bg: #ecfdf5; /* bg-emerald-50 */
+  --sorteo360-success-border: #a4f4cf; /* border-emerald-200 */
+  --sorteo360-success-text: #006045; /* text-emerald-800 */
+
+  /* El logo de Sorteo360. La proporción va acá y no incrustada en la regla
+     porque es un dato de ESTE archivo; si se reemplaza el SVG (ver ../../README.md),
+     lo que hay que ajustar está junto a la URL en vez de escondido más abajo.
+     La altura es la h-9 con la que la aplicación dibuja el mismo logo en su cabecera. */
+  --sorteo360-logo-url: url('../img/sorteo360-logo.svg');
+  --sorteo360-logo-height: 2.75rem;
+  --sorteo360-logo-ratio: 210 / 44;
+
+  --sorteo360-font-body: 'Roboto', helvetica, arial, sans-serif;
+  --sorteo360-font-heading: 'Inter', helvetica, arial, sans-serif;
+
+  /* PatternFly resuelve toda la tipografía desde estas cuatro variables, así que
+     redefinirlas la cambia entera sin tocar un solo selector suyo. Las terminadas
+     en --vf son las que usa donde hay soporte de fuentes variables; si se deja
+     solo el par sin sufijo, los títulos siguen saliendo en Red Hat Display.
+     El monoespaciado se deja como está: solo aparece en los códigos de
+     recuperación y Keycloak ya lo sirve él mismo. */
+  --pf-v5-global--FontFamily--text: var(--sorteo360-font-body);
+  --pf-v5-global--FontFamily--text--vf: var(--sorteo360-font-body);
+  --pf-v5-global--FontFamily--heading: var(--sorteo360-font-heading);
+  --pf-v5-global--FontFamily--heading--vf: var(--sorteo360-font-heading);
+}
+
+/* Red de seguridad para el día que Keycloak suba de PatternFly: el prefijo v5 va
+   en el nombre de esas variables, así que un salto a v6 las renombra, las cuatro
+   líneas de arriba quedan muertas y la tipografía vuelve a Red Hat sin que nada
+   falle ni se registre. Estos selectores no llevan versión y sostienen lo esencial
+   mientras alguien actualiza los nombres.
+
+   El título va por su id y no solo por la etiqueta porque PatternFly le pone su
+   propia clase (.pf-v5-c-title), y una clase le gana a un h1. El id es de Keycloak,
+   sale de la plantilla base y no cambia con la versión de PatternFly. */
+body {
+  font-family: var(--sorteo360-font-body);
+  color: var(--sorteo360-text);
+}
+
+h1,
+h2,
+h3,
+#kc-page-title {
+  font-family: var(--sorteo360-font-heading);
+}
+
+/* El fondo de la página. Reemplaza el degradado con logo que trae Keycloak: la
+   propiedad abreviada borra también su background-image, que es lo que se quiere. */
+
+/* --------------------------------------------------------------------------
+   La marca
+
+   Es el mismo bloque que la aplicación pone arriba a la izquierda en cada
+   pantalla (app/layout/PortalHeader.tsx): logo de la plataforma, un filete y la palabra
+   Sorteo360. Sin la insignia de versión que la aplicación sí muestra: en una
+   pantalla de acceso no aporta nada y le dice a un visitante sin sesión algo que
+   no necesita saber.
+
+   La marca se pinta acá, en el tema, y no en el campo displayNameHtml del realm,
+   para que el tema se baste solo: el realm lo administra la consola después del
+   primer arranque, y una configuración restaurada sin ese campo dejaría la
+   pantalla sin logo sin que nada falle.
+
+   Ese div no viene vacío: trae el nombre del realm como texto. font-size: 0 lo
+   saca de la vista sin sacarlo del árbol de accesibilidad, que es lo que un lector
+   de pantalla anuncia en lugar de un logo de fondo y de una palabra dibujada con
+   content, ninguno de los dos con texto alternativo.
+
+   displayNameHtml debe quedarse vacío: si alguien le pone el
+   <div class="kc-logo-text"> de Keycloak, el logo sale dos veces. */
+#kc-header-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 0;
+  /* La cabecera y la tarjeta son dos filas contiguas. Sin este margen el logo
+     termina pegado al filo de la tarjeta. */
+  margin: 0 auto var(--pf-v5-global--spacer--md, 1rem);
+  max-width: 100%;
+}
+
+/* La separación va de margen y no de gap del contenedor: el nombre del realm sigue
+   ahí como nodo de texto y el navegador lo cuenta como un elemento más de la fila,
+   así que un gap se cobraría dos veces, una a cada lado de un texto que no se ve. */
+#kc-header-wrapper::before {
+  content: '';
+  flex: none;
+  height: var(--sorteo360-logo-height);
+  width: calc(var(--sorteo360-logo-height) * var(--sorteo360-logo-ratio));
+  background-image: var(--sorteo360-logo-url);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* El filete es el borde izquierdo de la palabra y no un tercer elemento: así mide
+   exactamente el alto de su línea, que es la h-6 del filete de la aplicación, y no
+   hace falta inventarle una altura. */
+/* El logo ya dice Sorteo360: sin una segunda palabra al lado. */
+#kc-header-wrapper::after {
+  content: none;
+}
+
+/* Debajo de 24rem el bloque de marca no cabe en una línea y la página se iría de
+   ancho. El logo encoge; la palabra se queda como está porque es la que identifica
+   al producto. */
+@media (max-width: 24rem) {
+  :root {
+    --sorteo360-logo-height: 1.75rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   La tarjeta
+
+   Los valores son los de components/ui/Card.tsx. PatternFly no tiene variable de
+   radio ni de borde para esta tarjeta, así que esas dos van como declaración
+   normal; el resto se resuelve por sus variables, que es lo que evita pelear con
+   sus selectores. */
+.sorteo360-login {
+  /* En una pantalla angosta PatternFly deja la tarjeta de filo a filo, que le sirve
+     porque la suya no tiene ni borde ni esquinas redondeadas. La nuestra tiene las
+     dos y se le salían de la ventana. El margen se pone acá, en el contenedor de
+     todo, para que la marca y la tarjeta queden alineadas; por eso la cabecera
+     entrega el suyo, que si no se sumarían. En pantalla ancha no se nota: ahí la
+     tarjeta tiene un ancho fijo y va centrada. */
+  padding-inline: 1rem;
+  --pf-v5-c-login__header--PaddingLeft: 0;
+  --pf-v5-c-login__header--PaddingRight: 0;
+
+  --pf-v5-c-login__main--BackgroundColor: var(--sorteo360-surface);
+  --pf-v5-c-login__main--BoxShadow: var(--sorteo360-shadow-card);
+
+  /* El p-6 de CardHeader y de CardContent, en las dos variantes que PatternFly
+     usa: la base y la que aplica desde 768px de ancho. Fijar solo la base la deja
+     sin efecto en cuanto la ventana crece. */
+  --pf-v5-c-login__main-header--PaddingTop: 1.5rem;
+  --pf-v5-c-login__main-header--PaddingRight: 1.5rem;
+  --pf-v5-c-login__main-header--PaddingBottom: 1.5rem;
+  --pf-v5-c-login__main-header--PaddingLeft: 1.5rem;
+  --pf-v5-c-login__main-header--md--PaddingRight: 1.5rem;
+  --pf-v5-c-login__main-header--md--PaddingLeft: 1.5rem;
+  --pf-v5-c-login__main-body--PaddingRight: 1.5rem;
+  --pf-v5-c-login__main-body--PaddingBottom: 1.5rem;
+  --pf-v5-c-login__main-body--PaddingLeft: 1.5rem;
+  --pf-v5-c-login__main-body--md--PaddingRight: 1.5rem;
+  --pf-v5-c-login__main-body--md--PaddingLeft: 1.5rem;
+
+  /* Los enlaces, en el azul de la marca. El par sin sufijo lo usa la página; el
+     --dark lo redefinen componentes como el aviso, que se declaran a sí mismos
+     sobre fondo claro, y sin él un enlace dentro de un aviso saldría azul de
+     PatternFly. */
+  --pf-v5-global--link--Color: var(--sorteo360-primary);
+  --pf-v5-global--link--Color--hover: var(--sorteo360-primary);
+  --pf-v5-global--link--Color--dark: var(--sorteo360-primary);
+  --pf-v5-global--link--Color--dark--hover: var(--sorteo360-primary);
+}
+
+.sorteo360-card {
+  border: 1px solid var(--sorteo360-card-border);
+  border-radius: var(--sorteo360-radius-card);
+}
+
+/* El tema padre le pinta a la cabecera de la tarjeta un filo azul de 4px. La
+   aplicación no tiene nada parecido y el azul no es el suyo. */
+.sorteo360-card-header {
+  border-block-start: 0;
+}
+
+/* CardTitle.tsx: Inter, negrita, tracking-tight, alineado a la izquierda como en
+   toda la aplicación. PatternFly centra sus títulos.
+
+   El tamaño se fija acá porque theme.properties le quitó a esta clase el
+   modificador pf-m-3xl, que es de donde salía. Quitar el modificador en vez de
+   pisarlo evita tener que subir la especificidad para ganarle. */
+.sorteo360-title {
+  margin: 0;
+  font-family: var(--sorteo360-font-heading);
+  font-size: 1.25rem; /* text-xl */
+  font-weight: 700; /* font-bold */
+  line-height: 1; /* leading-none */
+  letter-spacing: -0.025em; /* tracking-tight */
+  color: var(--sorteo360-heading);
+  text-align: start;
+  font-size: 2.25rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.sorteo360-title::after {
+  content: 'Inicia sesión para preparar tus sorteos y correr la tómbola en vivo.';
+  display: block;
+  max-width: 28rem;
+  margin-top: 0.875rem;
+  font-family: var(--sorteo360-font-body);
+  font-size: 1.0625rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.6;
+  color: var(--sorteo360-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Los campos
+
+   Field.tsx dibuja el campo con un borde de un solo color en los cuatro lados.
+   PatternFly lo dibuja con dos capas: ::before pone tres lados y ::after el de
+   abajo, más grueso y en color de acento al enfocar, que es su subrayado. Acá el
+   ::before pasa a llevar los cuatro lados y el ::after se apaga.
+
+   Ninguna de las dos capas hereda el radio de la caja porque están posicionadas
+   sobre ella, así que el radio va en las dos. */
+.sorteo360-input {
+  --pf-v5-c-form-control--BackgroundColor: var(--sorteo360-surface);
+  --pf-v5-c-form-control--Color: var(--sorteo360-heading);
+  --pf-v5-c-form-control--FontSize: var(--sorteo360-font-size-sm);
+  --pf-v5-c-form-control--LineHeight: var(--sorteo360-line-height-sm);
+  --pf-v5-c-form-control--m-placeholder--Color: var(--sorteo360-placeholder);
+
+  /* px-3 py-2. Al padding vertical se le suma el pixel del borde porque
+     PatternFly lo dibuja fuera de la caja y Tailwind dentro; sin eso el campo
+     queda dos pixeles más bajo que el de la aplicación. */
+  --pf-v5-c-form-control--inset--base: 0.75rem;
+  --pf-v5-c-form-control--PaddingTop: calc(0.5rem + 1px);
+  --pf-v5-c-form-control--PaddingBottom: calc(0.5rem + 1px);
+
+  --pf-v5-c-form-control--before--BorderTopColor: var(--sorteo360-input-border);
+  --pf-v5-c-form-control--before--BorderRightColor: var(--sorteo360-input-border);
+  --pf-v5-c-form-control--before--BorderBottomColor: var(--sorteo360-input-border);
+  --pf-v5-c-form-control--before--BorderLeftColor: var(--sorteo360-input-border);
+  --pf-v5-c-form-control--before--BorderBottomWidth: var(--pf-v5-global--BorderWidth--sm, 1px);
+
+  --pf-v5-c-form-control--after--BorderBottomWidth: 0;
+  --pf-v5-c-form-control--focus--after--BorderBottomWidth: 0;
+  --pf-v5-c-form-control--m-error--after--BorderBottomWidth: 0;
+
+  --pf-v5-c-form-control--m-disabled--BackgroundColor: var(--sorteo360-disabled-bg);
+  --pf-v5-c-form-control--m-disabled--Color: var(--sorteo360-disabled-text);
+
+  --pf-v5-c-form-control--m-error__icon--m-status--Color: var(--sorteo360-danger-strong);
+
+}
+
+/* La caja y la capa que le dibuja el borde llevan el mismo radio: el ::before está
+   posicionado encima y no lo hereda. */
+.sorteo360-input,
+.sorteo360-input::before {
+  border-radius: var(--sorteo360-radius-input);
+}
+
+/* El anillo de foco. El componente de la aplicación nombra clases de Tailwind que
+   no existen en su juego de tokens (focus:ring-primary-200 sobre una escala que no
+   está definida), así que allá el anillo hoy no se dibuja. Acá va lo que ese
+   componente quiso decir: dos pixeles en el azul de la marca.
+
+   Va en el contenedor y no en el <input>, que es quien recibe el foco, porque el
+   contenedor es el que tiene el borde y el radio. Por eso hay que apagar el
+   contorno del input: si no, salen dos anillos, uno dentro del otro. */
+.sorteo360-input:focus-within {
+  outline: var(--sorteo360-focus-ring);
+  outline-offset: 0;
+}
+
+.sorteo360-input:focus-within > :is(input, select, textarea) {
+  outline: none;
+}
+
+/* El botón del ojo va pegado al campo de contraseña, no separado: los dos forman
+   un solo recuadro, el campo redondeado a la izquierda y el botón a la derecha.
+   El borde compartido lo dibuja el campo, así que el botón se queda sin el suyo
+   del lado izquierdo para que no salga de dos pixeles. */
+.pf-v5-c-input-group__item.pf-m-fill > .sorteo360-input,
+.pf-v5-c-input-group__item.pf-m-fill > .sorteo360-input::before {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.sorteo360-password-toggle {
+  --pf-v5-c-button--m-control--BackgroundColor: var(--sorteo360-surface);
+  --pf-v5-c-button--m-control--hover--BackgroundColor: var(--sorteo360-surface);
+  --pf-v5-c-button--m-control--focus--BackgroundColor: var(--sorteo360-surface);
+  --pf-v5-c-button--m-control--active--BackgroundColor: var(--sorteo360-surface);
+  --pf-v5-c-button--m-control--Color: var(--sorteo360-muted);
+  --pf-v5-c-button--m-control--hover--Color: var(--sorteo360-heading);
+  --pf-v5-c-button--m-control--BorderRadius: 0 var(--sorteo360-radius-input)
+    var(--sorteo360-radius-input) 0;
+  --pf-v5-c-button--m-control--after--BorderTopColor: var(--sorteo360-input-border);
+  --pf-v5-c-button--m-control--after--BorderRightColor: var(--sorteo360-input-border);
+  --pf-v5-c-button--m-control--after--BorderBottomColor: var(--sorteo360-input-border);
+  --pf-v5-c-button--m-control--after--BorderLeftColor: transparent;
+  /* El subrayado de acento de PatternFly al pasar el ratón, que el campo de al
+     lado ya no tiene. */
+  --pf-v5-c-button--m-control--hover--after--BorderBottomWidth: var(--pf-v5-global--BorderWidth--sm, 1px);
+  --pf-v5-c-button--m-control--hover--after--BorderBottomColor: var(--sorteo360-input-border);
+  --pf-v5-c-button--m-control--active--after--BorderBottomWidth: var(--pf-v5-global--BorderWidth--sm, 1px);
+  --pf-v5-c-button--m-control--active--after--BorderBottomColor: var(--sorteo360-input-border);
+  --pf-v5-c-button--m-control--focus--after--BorderBottomWidth: var(--pf-v5-global--BorderWidth--sm, 1px);
+  --pf-v5-c-button--m-control--focus--after--BorderBottomColor: var(--sorteo360-input-border);
+  --pf-v5-c-button--after--BorderRadius: 0 var(--sorteo360-radius-input)
+    var(--sorteo360-radius-input) 0;
+}
+
+.sorteo360-password-toggle:focus-visible {
+  outline: var(--sorteo360-focus-ring);
+  outline-offset: 0;
+}
+
+/* La etiqueta del campo, tal como la escribe Field.tsx. */
+.sorteo360-label {
+  font-family: var(--sorteo360-font-body);
+  font-size: var(--sorteo360-font-size-sm); /* text-sm */
+  font-weight: 500; /* font-medium */
+  color: var(--sorteo360-label); /* text-slate-700 */
+}
+
+/* El error debajo del campo: text-xs en rojo, como el <span> de error de Field.tsx.
+   El campo en sí no cambia de borde, que es lo que hace la aplicación; lo que marca
+   cuál falló son este texto y el ícono que Keycloak pone dentro del campo. */
+.sorteo360-field-error {
+  font-size: var(--sorteo360-font-size-xs);
+  color: var(--sorteo360-danger-strong);
+}
+
+/* --------------------------------------------------------------------------
+   El botón principal
+
+   Button.tsx, variante default y tamaño default: azul de marca, blanco encima,
+   rounded-md, text-sm, font-medium y 2.5rem de alto (h-10, que no sale del
+   padding sino de una altura fija).
+
+   pf-m-block, que la plantilla de Keycloak ya le pone, es lo que lo estira a todo
+   el ancho. */
+.sorteo360-button {
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--sorteo360-primary);
+  --pf-v5-c-button--m-primary--Color: var(--sorteo360-on-primary);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--sorteo360-primary-hover);
+  --pf-v5-c-button--m-primary--hover--Color: var(--sorteo360-on-primary);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--sorteo360-primary-hover);
+  --pf-v5-c-button--m-primary--focus--Color: var(--sorteo360-on-primary);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--sorteo360-primary-hover);
+  --pf-v5-c-button--m-primary--active--Color: var(--sorteo360-on-primary);
+  --pf-v5-c-button--BorderRadius: var(--sorteo360-radius-input);
+  --pf-v5-c-button--after--BorderRadius: var(--sorteo360-radius-input);
+  --pf-v5-c-button--FontSize: var(--sorteo360-font-size-sm);
+  --pf-v5-c-button--FontWeight: 500;
+  --pf-v5-c-button--LineHeight: var(--sorteo360-line-height-sm);
+
+  min-height: 2.75rem;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  min-height: 3.25rem;
+  font-size: 1rem;
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* El anillo de foco del botón va por fuera y no por dentro: el borde interno que
+   usa PatternFly es invisible sobre un fondo del mismo azul. */
+.sorteo360-button:focus-visible {
+  outline: var(--sorteo360-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Los enlaces. El color ya viene de las variables de --sorteo360-login; acá queda el
+   subrayado, que la aplicación solo muestra al pasar el ratón. */
+.sorteo360-login a {
+  text-decoration: none;
+  text-underline-offset: 4px; /* underline-offset-4 */
+}
+
+.sorteo360-login a:hover {
+  text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
+   El aviso
+
+   Es la parte donde más pelea PatternFly: su aviso lleva un filo grueso arriba,
+   sombra, el texto en negrita y un fondo por tono. El de la aplicación
+   (components/ui/Feedback.tsx) es una caja de un borde fino, fondo claro, texto
+   normal y un ícono de 16px arriba a la izquierda. Todo eso sale de variables suyas
+   menos el borde de los cuatro lados, que hay que declarar: PatternFly solo dibuja
+   el de arriba. */
+.sorteo360-alert {
+  --pf-v5-c-alert--PaddingTop: 0.5rem; /* py-2 */
+  --pf-v5-c-alert--PaddingBottom: 0.5rem;
+  --pf-v5-c-alert--PaddingRight: 0.75rem; /* px-3 */
+  --pf-v5-c-alert--PaddingLeft: 0.75rem;
+  --pf-v5-c-alert__FontSize: var(--sorteo360-font-size-sm); /* text-sm */
+  --pf-v5-c-alert__title--FontWeight: 400;
+  --pf-v5-c-alert__icon--MarginRight: 0.5rem; /* gap-2 */
+  --pf-v5-c-alert__icon--MarginTop: 0.125rem; /* mt-0.5 */
+  --pf-v5-c-alert__icon--FontSize: 1rem; /* el ícono de 16px */
+
+  border: 1px solid;
+  border-radius: var(--sorteo360-radius-input); /* rounded-md */
+  box-shadow: none;
+}
+
+/* Un tono por bloque: fondo, borde, texto y el ícono del mismo color que el texto,
+   que es lo que hace la aplicación al dejarlo heredar currentColor. */
+.sorteo360-alert.pf-m-danger {
+  --pf-v5-c-alert--m-inline--m-danger--BackgroundColor: var(--sorteo360-danger-bg);
+  --pf-v5-c-alert--m-danger__title--Color: var(--sorteo360-danger-text);
+  --pf-v5-c-alert--m-danger__icon--Color: var(--sorteo360-danger-text);
+  border-color: var(--sorteo360-danger-border);
+}
+
+.sorteo360-alert.pf-m-warning {
+  --pf-v5-c-alert--m-inline--m-warning--BackgroundColor: var(--sorteo360-warning-bg);
+  --pf-v5-c-alert--m-warning__title--Color: var(--sorteo360-warning-text);
+  --pf-v5-c-alert--m-warning__icon--Color: var(--sorteo360-warning-text);
+  border-color: var(--sorteo360-warning-border);
+}
+
+.sorteo360-alert.pf-m-info {
+  --pf-v5-c-alert--m-inline--m-info--BackgroundColor: var(--sorteo360-info-bg);
+  --pf-v5-c-alert--m-info__title--Color: var(--sorteo360-info-text);
+  --pf-v5-c-alert--m-info__icon--Color: var(--sorteo360-info-text);
+  border-color: var(--sorteo360-info-border);
+}
+
+.sorteo360-alert.pf-m-success {
+  --pf-v5-c-alert--m-inline--m-success--BackgroundColor: var(--sorteo360-success-bg);
+  --pf-v5-c-alert--m-success__title--Color: var(--sorteo360-success-text);
+  --pf-v5-c-alert--m-success__icon--Color: var(--sorteo360-success-text);
+  border-color: var(--sorteo360-success-border);
+}
+
+/* --------------------------------------------------------------------------
+   Diseño dividido: formulario a la izquierda, panel de marca a la derecha.
+
+   Sin bifurcar plantillas: el contenedor de todo (.sorteo360-login) pasa a ser una
+   grilla de dos columnas y sus dos pseudoelementos ocupan la de la derecha. ::after
+   pinta el degradado y el titular; ::before, encima y abajo, la línea de cierre.
+   Debajo de 64rem el panel se esconde y queda solo el formulario. */
+.login-pf body {
+  background: var(--sorteo360-surface);
+}
+
+.sorteo360-login {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  min-height: 100vh;
+  padding: 0;
+  /* PatternFly centra las filas: el panel de marca tiene que llegar de arriba abajo. */
+  align-items: stretch;
+  background: var(--sorteo360-surface);
+}
+
+.sorteo360-login > .pf-v5-c-login__container {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 2.5rem;
+  gap: 0;
+}
+
+/* El logo arriba; el formulario centrado en lo que queda de alto. */
+.sorteo360-login #kc-header {
+  margin: 0;
+  padding: 0;
+}
+
+.sorteo360-login #kc-header-wrapper {
+  margin: 0;
+}
+
+.sorteo360-card {
+  margin-block: auto;
+  padding-block: 2rem;
+  border: 0;
+  box-shadow: none;
+  --pf-v5-c-login__main--BoxShadow: none;
+}
+
+.sorteo360-login {
+  --pf-v5-c-login__main-header--PaddingLeft: 0;
+  --pf-v5-c-login__main-header--PaddingRight: 0;
+  --pf-v5-c-login__main-header--md--PaddingLeft: 0;
+  --pf-v5-c-login__main-header--md--PaddingRight: 0;
+  --pf-v5-c-login__main-header--PaddingTop: 0;
+  --pf-v5-c-login__main-header--PaddingBottom: 2.25rem;
+  --pf-v5-c-login__main-body--PaddingLeft: 0;
+  --pf-v5-c-login__main-body--PaddingRight: 0;
+  --pf-v5-c-login__main-body--md--PaddingLeft: 0;
+  --pf-v5-c-login__main-body--md--PaddingRight: 0;
+}
+
+/* Campos más altos, con su ícono a la izquierda como en la referencia. */
+.sorteo360-input {
+  --pf-v5-c-form-control--PaddingTop: 0.9rem;
+  --pf-v5-c-form-control--PaddingBottom: 0.9rem;
+  --pf-v5-c-form-control--FontSize: 1rem;
+}
+
+#username,
+#password {
+  padding-inline-start: 2.75rem;
+  background-repeat: no-repeat;
+  background-position: 1rem center;
+  background-size: 1.15rem;
+}
+
+#username {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2362748e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c0-4 4-6 8-6s8 2 8 6'/%3E%3C/svg%3E");
+}
+
+#password {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2362748e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E");
+}
+
+.sorteo360-label {
+  font-size: 0.9375rem;
+  color: var(--sorteo360-heading);
+}
+
+.sorteo360-login .pf-v5-c-form {
+  --pf-v5-c-form--GridGap: 1.5rem;
+}
+
+.sorteo360-login .pf-v5-c-form__actions {
+  margin-top: 0.75rem;
+}
+
+/* El panel de marca: el degradado del ícono del logo, con una luz arriba a la derecha. */
+.sorteo360-login::after {
+  content: 'Cada premio,\A en vivo y con acta.';
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 clamp(3rem, 7vw, 7rem);
+  white-space: pre-line;
+  font-family: var(--sorteo360-font-heading);
+  font-size: clamp(2.25rem, 3.6vw, 3.5rem);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  color: #ffffff;
+  background:
+    radial-gradient(42rem 34rem at 92% 8%, rgb(30 162 220 / 0.55), transparent 62%),
+    radial-gradient(30rem 24rem at 10% 100%, rgb(30 162 220 / 0.18), transparent 60%),
+    linear-gradient(160deg, #0a2f63 0%, var(--sorteo360-primary) 55%, #0b2a57 100%);
+}
+
+.sorteo360-login::before {
+  content: 'Padrón, rondas y premios listos para la tómbola. Los ganadores salen al instante y el acta se arma sola.';
+  grid-column: 2;
+  grid-row: 1;
+  z-index: 1;
+  align-self: end;
+  max-width: 34rem;
+  margin: 0 clamp(3rem, 7vw, 7rem) 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgb(255 255 255 / 0.2);
+  font-family: var(--sorteo360-font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: rgb(255 255 255 / 0.78);
+}
+
+@media (max-width: 64rem) {
+  .sorteo360-login {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sorteo360-login::before,
+  .sorteo360-login::after {
+    content: none;
+  }
+
+  .sorteo360-login > .pf-v5-c-login__container {
+    padding: 2rem 1.25rem;
+  }
+}

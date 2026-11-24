@@ -1,0 +1,47 @@
+meta {
+  name: List Service Suppliers
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/service-suppliers
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~category: Venue
+  ~country: República Dominicana
+  ~city: Santo Domingo
+  ~searchTerm: jaragua
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Lista proveedores. Todos los filtros son opcionales; sin ninguno devuelve el directorio completo.
+
+  | Param | Tipo | Notas |
+  | --- | --- | --- |
+  | `category` | string | una de las categorías de proveedor |
+  | `country` | string | país de la empresa, entero y sin distinguir mayúsculas |
+  | `city` | string | ciudad de la empresa, entera y sin distinguir mayúsculas |
+  | `searchTerm` | string | parte del nombre de la empresa |
+
+  Cada fila trae `company` con el id que este servicio guarda y la identidad que resuelve
+  crm-service: `name`, `country`, `city` e `isActive` (ADR-0015). Las filas salen ordenadas por
+  ese nombre, y `country`, `city` y `searchTerm` se aplican sobre la identidad ya resuelta.
+
+  La cabecera `X-Crm-Directory-Status` dice qué tan vigente es esa identidad: `ok`, `stale`
+  (copia vencida servida porque el CRM no contestó) o `unavailable` (nunca hubo copia).
+  `X-Opt-Directory-Status` sale con el mismo valor, por compatibilidad.
+
+  Un proveedor cuya empresa no resuelve se devuelve igual, con `company.name` en `null` y al
+  final del orden, y **ningún filtro lo descarta**: una fila que existe no se esconde.
+
+  Cada fila trae `auditoriumCapacity` y `cocktailCapacity` (aforo máximo del local). Vienen
+  en `null` si el proveedor no es `Venue` o no tiene la cifra declarada.
+}

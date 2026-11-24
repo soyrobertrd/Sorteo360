@@ -1,0 +1,30 @@
+meta {
+  name: Remove Attendee Override
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/attendees/overrides
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "ana@mitur.gob.do"
+  }
+}
+
+docs {
+  Retira la decisión manual sobre ese correo. **204** haya o no una; no consulta la puerta.
+  **409 RAFFLE_NOT_DRAFT** si el sorteo ya arrancó, **409 RAFFLE_COMPLETED** si ya se completó.
+}

@@ -1,0 +1,31 @@
+meta {
+  name: 07 Cancel without Reason - 400
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/cancel
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcEventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 400
+}
+
+docs {
+  La razón de cancelación es obligatoria; sin ella el validator rechaza con 400.
+}

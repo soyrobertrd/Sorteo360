@@ -1,0 +1,31 @@
+meta {
+  name: Search HR Employees
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{crmBaseUrl}}/v{{apiVersion}}/hr-employees?search=almonte
+  body: none
+  auth: inherit
+}
+
+params:query {
+  search: almonte
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.getBody().length > 0) {
+    bru.setVar("hrId", res.getBody()[0].hrId);
+    console.log("hrId =", bru.getVar("hrId"));
+  }
+}
+
+docs {
+  Busca en la copia en memoria de la lista activa de Recursos Humanos: un nombre
+  desde 3 letras (sin tildes ni mayúsculas) o una cédula desde sus primeros 6
+  dígitos. Hasta 20 filas, con la cédula enmascarada.
+
+  **503** `hr_employees.type_ahead_unavailable` mientras la copia no se ha
+  cargado; con `live=true` pregunta a Recursos Humanos con sus propios límites.
+}

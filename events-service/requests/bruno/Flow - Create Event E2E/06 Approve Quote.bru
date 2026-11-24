@@ -1,0 +1,68 @@
+meta {
+  name: 06 Approve Quote
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/categories/:category/quote/approve
+  body: json
+  auth: none
+}
+
+params:path {
+  eventId: {{eventId}}
+  category: {{category}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "winnerProposalId": "{{proposalId}}"
+  }
+}
+
+script:pre-request {
+  // Separación de funciones: quien somete no puede aprobar (403 SELF_DECISION).
+  // El flujo corre como `direccion` (env), así que este paso pide su propio token
+  // como `admin.pgti360` (central_admin, tiene quotes:approve) y lo pone en el
+  // header directamente, sin tocar el token cacheado del resto de la colección.
+  const axios = require("axios");
+  const kcUrl = bru.getEnvVar("keycloakUrl");
+  const realm = bru.getEnvVar("realm");
+  const clientId = bru.getEnvVar("authClientId");
+
+  const form =
+    "grant_type=password" +
+    "&client_id=" + encodeURIComponent(clientId) +
+    "&username=admin.pgti360" +
+    "&password=" + encodeURIComponent(bru.getEnvVar("password")) +
+    "&scope=openid";
+
+  const resp = await axios.post(
+    `${kcUrl}/realms/${realm}/protocol/openid-connect/token`,
+    form,
+    { headers: { "Content-Type": "application/x-www-form-urlencoded" } },
+  );
+
+  req.setHeader("Authorization", "Bearer " + resp.data.access_token);
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq approved
+}
+
+docs {
+  Aprueba la cotización sometida en el paso 05 eligiendo la oferta del flujo
+  (`submitted → approved`). Es la misma propuesta que recomendó el paso 04, que dejó su
+  identificador en `proposalId`. Se ejecuta como `admin.pgti360` porque quien sometió
+  (`direccion`, el usuario del environment) no puede decidir su propia submission
+  (separación de funciones, 403 `SELF_DECISION`).
+
+  Con la cotización aprobada, el paso 07 ya puede registrar el monto final, que solo entra
+  en esta misma propuesta (reglas `FINAL_AMOUNT_NOT_APPROVED` y `FINAL_AMOUNT_NOT_WINNER`).
+}

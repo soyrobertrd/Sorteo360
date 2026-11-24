@@ -1,0 +1,25 @@
+meta {
+  name: 18 Get Quote after Cancel - 404
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/categories/:category/quote
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcCascadeEventId}}
+  category: {{category}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Verificación del escenario B: tras cancelar el evento, la cotización que estaba en
+  `draft` dejó de ser visible (soft-cancel en cascada).
+}

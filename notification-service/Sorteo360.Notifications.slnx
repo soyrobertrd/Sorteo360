@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="../shared/Sorteo360.Platform/Sorteo360.Platform.csproj" />
+  <Project Path="Sorteo360.Notifications.Core/Sorteo360.Notifications.Core.csproj" />
+  <Project Path="Sorteo360.Notifications.Infrastructure/Sorteo360.Notifications.Infrastructure.csproj" />
+  <Project Path="Sorteo360.Notifications.Tests.Integration/Sorteo360.Notifications.Tests.Integration.csproj" />
+  <Project Path="Sorteo360.Notifications.Tests.Unit/Sorteo360.Notifications.Tests.Unit.csproj" />
+  <Project Path="Sorteo360.Notifications.Web/Sorteo360.Notifications.Web.csproj" />
+</Solution>

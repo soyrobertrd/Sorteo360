@@ -1,0 +1,23 @@
+meta {
+  name: Delete Raffle
+  type: http
+  seq: 25
+}
+
+delete {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+docs {
+  Elimina el sorteo del evento con sus rondas, premios y decisiones manuales, solo mientras siga en
+  `draft`. **204**, y después **Create Raffle** vuelve a funcionar en el mismo evento.
+  **409 RAFFLE_NOT_DRAFT** en curso, **409 RAFFLE_COMPLETED** completado, **409 EVENT_NOT_EDITABLE**
+  con el evento cerrado o cancelado, **404 RAFFLE_NOT_FOUND** si el evento no tiene sorteo. Va al
+  final de la carpeta: borra el sorteo que usan las demás. Exige `raffles:write`.
+}

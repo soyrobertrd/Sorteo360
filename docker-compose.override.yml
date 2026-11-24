@@ -1,0 +1,60 @@
+# ============================================================================
+# Override LOCAL — Docker Compose lo carga automáticamente junto a
+# docker-compose.yml cuando corres `docker compose up` sin flags -f.
+#
+# Aquí van únicamente comodidades de desarrollo local. NUNCA se usa en
+# stage/producción (esos invocan -f docker-compose.yml -f docker-compose.<env>.yml,
+# sin este archivo).
+# ============================================================================
+services:
+  # PostgreSQL local: se construye desde infra/postgres/Dockerfile para HORNEAR
+  # los scripts de init en la imagen. Evita el bind mount de
+  # /docker-entrypoint-initdb.d, cuyo bit de ejecución es no determinista en
+  # Docker Desktop (macOS/VirtioFS) y rompe el init con "bad interpreter".
+  postgres:
+    build:
+      context: ./infra/postgres
+      dockerfile: Dockerfile
+    image: sorteo360/postgres:local
+    # Reemplaza (no fusiona) los volúmenes del base: conserva los datos pero
+    # elimina el bind mount de los scripts de init (ahora horneados en la imagen).
+    # Por eso los montajes del TLS se repiten acá.
+    volumes: !override
+      - postgres-data:/var/lib/postgresql/data
+      - postgres-tls:/etc/postgresql/tls:ro
+      - ./infra/postgres-setup/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+
+  events-service:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Logs más verbosos en local.
+      Logging__LogLevel__Default: Debug
+    # Reconstruir la imagen si cambió el código al hacer `up`. El contexto es la
+    # raíz del repo (ver la nota en docker-compose.yml).
+    build:
+      context: .
+      dockerfile: events-service/Dockerfile
+
+  notification-service:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Logs más verbosos en local.
+      Logging__LogLevel__Default: Debug
+    # Reconstruir la imagen si cambió el código al hacer `up`. El contexto es la
+    # raíz del repo (ver la nota en docker-compose.yml).
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+
+  # Adminer: UI web ligera para inspeccionar PostgreSQL en local.
+  # Solo arranca con el perfil "tools":  COMPOSE_PROFILES=all,tools docker compose up
+  adminer:
+    image: adminer:5
+    ports:
+      - "${ADMINER_PORT:-8081}:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on:
+      - postgres
+    networks: [sorteo360-net]
+    profiles: [tools]

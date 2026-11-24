@@ -1,0 +1,30 @@
+meta {
+  name: Get My Collaborator
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{crmBaseUrl}}/v{{apiVersion}}/me/collaborator
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  El propio expediente de quien inició sesión, sin id en la ruta: el CRM lo busca
+  por el correo verificado del token contra el correo de trabajo de Recursos
+  Humanos. Trae lo mismo que `GET v1/collaborators/{id}` más `cedula`, entera y
+  sin auditar. Pide `own-record:read`, del compuesto `collaborator`.
+
+  Para probarlo como colaborador: registra primero a Laura Martínez ("Search HR
+  Employees" con `search=laura`, después "Create Collaborator"), y cambia la
+  variable `username` a `colaborador` (clave `localdev`).
+
+  **404** `collaborator.own_record_not_found` sin correo verificado, sin un
+  colaborador activo con ese correo o con dos; **403** `collaborator.departed` si
+  todos los que lo tienen ya dejaron el MITUR.
+}

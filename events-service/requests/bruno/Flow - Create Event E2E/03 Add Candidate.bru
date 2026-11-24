@@ -1,0 +1,41 @@
+meta {
+  name: 03 Add Candidate
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/categories/:category/quote/candidates
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  category: {{category}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "serviceSupplierId": "{{serviceSupplierId}}",
+    "proposal": {
+      "quoteText": "Cotización E2E.",
+      "estimatedAmount": { "amount": 12000.00, "currency": "USD" }
+    }
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setVar("candidateId", res.getBody());
+    console.log("candidateId =", bru.getVar("candidateId"));
+  }
+}
+
+assert {
+  res.status: eq 201
+}

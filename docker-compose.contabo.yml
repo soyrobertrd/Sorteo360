@@ -1,0 +1,16 @@
+# Sorteo360 — override para un VPS compartido (Contabo + aaPanel).
+# El Nginx de aaPanel termina TLS y ya ocupa 80/443 por otro sitio, así que Caddy no arranca
+# y frontend/keycloak se publican solo en localhost para que Nginx haga de proxy.
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.contabo.yml --env-file .env.prod up -d
+services:
+  caddy:
+    profiles: ["caddy"] # desactivado: solo arranca con --profile caddy
+
+  frontend:
+    ports:
+      - "127.0.0.1:18080:8080"
+
+  keycloak:
+    ports:
+      - "127.0.0.1:18081:8080"

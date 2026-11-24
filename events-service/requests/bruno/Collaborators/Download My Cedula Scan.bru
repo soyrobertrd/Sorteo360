@@ -1,0 +1,18 @@
+meta {
+  name: Download My Cedula Scan
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{crmBaseUrl}}/v{{apiVersion}}/me/collaborator/cedula/scan
+  body: none
+  auth: inherit
+}
+
+docs {
+  El escaneo de la propia cédula, abierto por el CRM, con `Cache-Control: no-store`
+  y sin auditar. Las otras rutas son `staff-badge/scan`,
+  `passports/{documentId}/scan` y `visas/{documentId}/scan`. **404** sin escaneo,
+  o si el pasaporte o la visa no es tuyo.
+}

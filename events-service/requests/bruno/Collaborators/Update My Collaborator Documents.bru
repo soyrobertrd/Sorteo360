@@ -1,0 +1,42 @@
+meta {
+  name: Update My Collaborator Documents
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{crmBaseUrl}}/v{{apiVersion}}/me/collaborator/documents
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "passports": [
+      { "passportNumber": "PA1234567", "issuingCountry": "DO", "issueDate": "2024-01-01", "expiryDate": "2034-01-01" }
+    ],
+    "visas": []
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.getBody().passports.length > 0) {
+    bru.setVar("passportId", res.getBody().passports[0].id);
+    console.log("passportId =", bru.getVar("passportId"));
+  }
+}
+
+docs {
+  Reemplaza los propios documentos: lo mismo que `PUT v1/collaborators/{id}/documents`,
+  con sus reglas y sus errores, y responde como "Get My Collaborator Documents". Un
+  pasaporte o una visa con `id` y sin número conserva el guardado; uno que no viene
+  se quita. No lleva `cedulaExpiryDate` ni `staffBadgeCode`: la cédula la trae
+  Recursos Humanos y el carnet lo entrega el MITUR, así que los dos se quedan como
+  estaban, y ningún dato general cambia. Exige `own-record:write`.
+  **404 collaborator.own_record_not_found** y **403 collaborator.departed** como en
+  "Get My Collaborator".
+}

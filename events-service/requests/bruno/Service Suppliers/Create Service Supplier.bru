@@ -1,0 +1,74 @@
+meta {
+  name: Create Service Supplier
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/service-suppliers
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "category": "Venue",
+    "secondaryCategories": ["Alimentacion"],
+    "companyId": "{{companyId}}",
+    "auditoriumCapacity": 500,
+    "cocktailCapacity": 800,
+    "comments": "Sala principal para 500 personas.",
+    "services": [
+      { "name": "Alquiler del salón principal", "unit": "Día", "referencePrice": { "amount": 1500, "currency": "USD" } },
+      { "name": "Montaje escolar", "unit": "Pax", "referencePrice": { "amount": 25, "currency": "EUR" } }
+    ]
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Crea un proveedor (registro maestro reutilizable entre eventos). Devuelve **201** con el
+  GUID del proveedor en el body y el `Location`.
+
+  **Obligatorios:** `category`, `companyId`.
+  **Opcionales:** `secondaryCategories`, `auditoriumCapacity`, `cocktailCapacity`, `comments`,
+  `services`.
+
+  **companyId** es una empresa de crm-service, que es su única autoridad: acá no se guarda ni el
+  nombre ni el país ni el domicilio (ADR-0015). La empresa se elige —o se registra, si nadie la
+  tenía— contra crm-service *antes* de esta llamada y con el token de quien la usa;
+  events-service nunca crea ni edita una empresa. Para probar acá, saca un id de
+  `GET /v1/companies` en la colección de crm-service y ponlo en la variable `companyId` del
+  entorno (los dos flujos usan `companyId` y `lifecycleCompanyId`). El id se comprueba en vivo
+  contra el CRM:
+  un id que no existe devuelve **409** `COMPANY_NOT_AVAILABLE` y un CRM caído **503**
+  `CRM_UNAVAILABLE`, y en ninguno de los dos se guarda nada.
+
+  Una empresa admite una sola ficha viva por categoría: la segunda devuelve **409**
+  `SUPPLIER_COMPANY_ALREADY_REGISTERED`. La misma empresa en otra categoría sí vale —un hotel
+  que es el local y también el catering son dos fichas— y una ficha dada de baja no estorba.
+
+  Las fotos **no viajan acá**: se suben una por una a `POST /service-suppliers/{id}/photos`
+  después de crear la ficha (ver *Upload Service Supplier Photo*).
+
+  - **category:** Venue | Ambientacion | Audiovisuales | Seguridad | Traductores |
+    Edecanes | Alimentacion | Transporte | Fotografia | Produccion | Tecnologia |
+    Mobiliario | Entretenimiento | Limpieza | Logistica
+  - **auditoriumCapacity / cocktailCapacity:** aforo **máximo** del local montado en
+    auditorio (sentado) y en cóctel (de pie). Independientes entre sí y solo válidos en
+    la categoría `Venue`: enviarlos en otra categoría devuelve **400**, igual que un cero
+    o un negativo. Omitirlos deja el aforo sin especificar.
+  - **services:** el catálogo de servicios, completo; omitirlo es "sin servicios". Cada uno
+    lleva `name`, `unit` (texto libre) y `referencePrice` con monto mayor que cero y moneda
+    `USD` o `EUR`, obligatoria. El servidor le pone un `id` a cada uno; se lee en el detalle.
+    Más de 100 es **400** `SUPPLIER_SERVICE_LIMIT_REACHED`, el mismo nombre y unidad dos veces
+    **400** `SUPPLIER_SERVICE_DUPLICATED`, y cualquier `id` enviado al crear **400**
+    `SUPPLIER_SERVICE_NOT_FOUND`.
+}

@@ -1,0 +1,101 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <!-- Result pattern / validation -->
+  <ItemGroup>
+    <PackageVersion Include="CSharpFunctionalExtensions" Version="3.7.0" />
+    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2" />
+    <PackageVersion Include="Scriban.Signed" Version="7.4.0" />
+    <PackageVersion Include="SSH.NET" Version="2026.0.0" />
+  </ItemGroup>
+  <!-- Data access -->
+  <ItemGroup>
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9" />
+  </ItemGroup>
+  <!-- Caching -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.9" />
+  </ItemGroup>
+  <!-- Resilience -->
+  <ItemGroup>
+    <PackageVersion Include="Polly.Core" Version="8.7.0" />
+  </ItemGroup>
+  <!-- Logging -->
+  <ItemGroup>
+    <PackageVersion Include="Serilog" Version="4.3.1" />
+    <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageVersion Include="Serilog.Enrichers.Process" Version="3.0.0" />
+    <PackageVersion Include="Serilog.Exceptions" Version="8.4.0" />
+    <PackageVersion Include="Serilog.Expressions" Version="5.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Async" Version="2.1.0" />
+  </ItemGroup>
+  <!-- API versioning / docs -->
+  <ItemGroup>
+    <PackageVersion Include="Asp.Versioning.Http" Version="10.0.0" />
+    <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.16.4" />
+  </ItemGroup>
+  <!-- Health checks -->
+  <ItemGroup>
+    <PackageVersion Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
+  </ItemGroup>
+  <!-- Auth -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
+  </ItemGroup>
+  <!-- Hojas de cálculo y QR (convocatorias). Las tres sin dependencias nativas, así que
+       el Dockerfile no gana ninguna línea de apt y System.Drawing.Common se queda fuera
+       de la imagen. EPPlus queda descartado desde 5.0.3 por su licencia Polyform, y NPOI
+       trae la misma trampa sin anunciarla: el repositorio es Apache-2.0 y el nupkg lleva
+       un EULA de mantenimiento. -->
+  <ItemGroup>
+    <PackageVersion Include="MiniExcel" Version="1.46.0" />
+    <PackageVersion Include="Sep" Version="0.17.0" />
+    <PackageVersion Include="Net.Codecrete.QrCodeGenerator" Version="3.1.0" />
+  </ItemGroup>
+  <!-- Correo. MimeKit trae el conversor de HTML a texto con el que se deriva la parte
+       text/plain del cuerpo ya sustituido, y el parser de direcciones que decide si una
+       dirección es sintácticamente válida: el mismo que usa la pata SMTP. MailKit es esa
+       pata: el mismo cliente corre contra Mailpit y contra SendGrid, y lo único que
+       cambia entre los dos es Smtp__RequireTls. Las dos versiones van juntas porque
+       MailKit depende de MimeKit. -->
+  <ItemGroup>
+    <PackageVersion Include="MimeKit" Version="4.18.0" />
+    <PackageVersion Include="MailKit" Version="4.18.0" />
+    <!-- Fijado por transitive pinning: MimeKit 4.18.0 trae 10.0.0, afectada por
+         GHSA-846f-f764-76mx y GHSA-2fmv-rv2c-59x7 (parcheadas en 10.0.13). -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.15" />
+  </ItemGroup>
+  <!-- PDF del lado del servidor (ADR-0024): el acta notarial del sorteo. PDFsharp-MigraDoc es
+       la compilación sin GDI, MIT, y solo la referencia Infrastructure. PdfPig (Apache-2.0) lee
+       el texto de vuelta, y solo en los tests: el paquete se llama PdfPig aunque su espacio de
+       nombres sea UglyToad.PdfPig, y el id UglyToad.PdfPig de NuGet es otra cosa, abandonada. -->
+  <ItemGroup>
+    <PackageVersion Include="PDFsharp-MigraDoc" Version="6.2.4" />
+    <PackageVersion Include="PdfPig" Version="0.1.16" />
+  </ItemGroup>
+  <!-- Testing -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.6.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="NSubstitute" Version="5.3.0" />
+    <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.9" />
+    <PackageVersion Include="Testcontainers" Version="4.12.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.12.0" />
+    <PackageVersion Include="WireMock.Net" Version="2.11.0" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+    <PackageVersion Include="coverlet.msbuild" Version="10.0.1" />
+  </ItemGroup>
+</Project>

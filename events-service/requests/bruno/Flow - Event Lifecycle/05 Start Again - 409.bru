@@ -1,0 +1,23 @@
+meta {
+  name: 05 Start Again - 409
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/start
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcEventId}}
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Iniciar solo aplica desde `planning`; el evento ya está `in_progress`.
+}

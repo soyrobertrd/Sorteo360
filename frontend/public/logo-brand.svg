@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 44" fill="none">
+  <rect x="2" y="4" width="36" height="36" rx="10" fill="url(#sorteoBrandGradLight)" />
+  <path d="M13 18.5C13 17.6716 13.6716 17 14.5 17H25.5C26.3284 17 27 17.6716 27 18.5V21C25.8954 21 25 21.8954 25 23C25 24.1046 25.8954 25 27 25V27.5C27 28.3284 26.3284 29 25.5 29H14.5C13.6716 29 13 28.3284 13 27.5V25C14.1046 25 15 24.1046 15 23C15 21.8954 14.1046 21 13 21V18.5Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M20 13L21.05 15.15L23.4 15.5L21.7 17.15L22.1 19.5L20 18.38L17.9 19.5L18.3 17.15L16.6 15.5L18.95 15.15L20 13Z" fill="#FCD34D"/>
+  <text x="48" y="25" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="18" font-weight="800" letter-spacing="-0.03em" fill="#0F172A">Sorteo<tspan fill="#1EA2DC">360</tspan></text>
+  <text x="48" y="36" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="9.5" font-weight="600" letter-spacing="0.06em" fill="#64748B">EVENTOS &amp; RIFAS CORPORATIVAS</text>
+  <defs>
+    <linearGradient id="sorteoBrandGradLight" x1="2" y1="4" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0D3B7D"/>
+      <stop offset="1" stop-color="#1EA2DC"/>
+    </linearGradient>
+  </defs>
+</svg>

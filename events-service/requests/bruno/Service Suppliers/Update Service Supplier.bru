@@ -1,0 +1,70 @@
+meta {
+  name: Update Service Supplier
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/service-suppliers/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: {{serviceSupplierId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "companyId": "{{companyId}}",
+    "secondaryCategories": ["Alimentacion", "Audiovisuales"],
+    "auditoriumCapacity": 450,
+    "cocktailCapacity": 900,
+    "comments": "Comentarios actualizados.",
+    "isHireable": true,
+    "services": [
+      { "name": "Alquiler del salón principal", "unit": "Día", "referencePrice": { "amount": 1600, "currency": "USD" } },
+      { "name": "Pantalla LED 3x2 m", "unit": "Día", "referencePrice": { "amount": 800, "currency": "USD" } }
+    ]
+  }
+}
+
+docs {
+  Edita los campos editables del proveedor. La `category` principal NO se cambia en edición (no
+  va en el body). **204** si actualizó, **404** si no existe.
+
+  **secondaryCategories:** la lista completa de categorías secundarias (ADR-0034); omitirla las
+  borra. La principal guardada repetida acá es **400** `SUPPLIER_SECONDARY_CATEGORY_IS_MAIN`, y
+  una categoría que otra ficha de la misma empresa ya tiene es **409**
+  `SUPPLIER_COMPANY_ALREADY_REGISTERED`.
+
+  Las fotos quedan fuera: no viajan en el cuerpo y editar la ficha ya no las toca. Cada una
+  se agrega o se quita por su propia ruta.
+
+  **companyId:** obligatorio, y se valida en vivo con los mismos códigos que al crear —un id
+  malo escrito editando es tan permanente como uno escrito creando. Cambiarlo mueve la ficha a
+  otra empresa, que es cómo se corrige una abierta contra la equivocada; moverla a una empresa
+  que ya tiene ficha viva en esa categoría devuelve **409**
+  `SUPPLIER_COMPANY_ALREADY_REGISTERED`.
+
+  **auditoriumCapacity / cocktailCapacity:** siguen el mismo reemplazo completo que el resto
+  del cuerpo, así que omitir uno lo borra y enviarlo lo corrige, sin tocar al otro. Cero o
+  negativo devuelve **400**; un aforo sobre un proveedor cuya categoría guardada no es `Venue`
+  devuelve **409** con el código `SUPPLIER_CAPACITY_NOT_APPLICABLE`.
+
+  **isHireable:** obligatorio, omitirlo devuelve **400** (ADR-0009: un campo de tipo valor no
+  toma un default implícito). Enviarlo en `false` marca "no volver a contratar": el proveedor
+  sale del pool de candidatos y nada más, porque la ficha, el listado, el historial y las
+  cotizaciones ya registradas lo siguen mostrando. No es el `isActive` de la empresa en el CRM.
+
+  **services:** el catálogo completo, reemplazado por `id`. Un servicio con el `id` que trae el
+  detalle se conserva con los valores nuevos, uno sin `id` es nuevo, y uno que no viaja se borra;
+  omitir la lista vacía el catálogo. El ejemplo no lleva `id`, así que reemplaza todo: para
+  conservar uno, copia su `id` de *Get Service Supplier by Id*. Un `id` que no es de esta ficha es
+  **400** `SUPPLIER_SERVICE_NOT_FOUND`; el mismo nombre y unidad dos veces, **400**
+  `SUPPLIER_SERVICE_DUPLICATED`; más de 100, **400** `SUPPLIER_SERVICE_LIMIT_REACHED`.
+}

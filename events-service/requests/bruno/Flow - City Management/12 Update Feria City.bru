@@ -1,0 +1,37 @@
+meta {
+  name: 12 Update Feria City
+  type: http
+  seq: 12
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/cities/:cityId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{gcFeriaEventId}}
+  cityId: {{gcFeriaCityId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Múnich",
+    "country": "Alemania",
+    "timeZone": "Europe/Berlin"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.name: eq Múnich
+}
+
+docs {
+  El PATCH vale para un evento abierto de cualquier tipo (PGTI-335).
+}

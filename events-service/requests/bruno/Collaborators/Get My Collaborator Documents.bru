@@ -1,0 +1,21 @@
+meta {
+  name: Get My Collaborator Documents
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{crmBaseUrl}}/v{{apiVersion}}/me/collaborator/documents
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Los propios documentos: lo mismo que `GET v1/collaborators/{id}/documents`, más
+  el número entero de cada pasaporte (`passportNumber`) y de cada visa
+  (`visaNumber`), sin auditar. Mismos códigos que "Get My Collaborator".
+}

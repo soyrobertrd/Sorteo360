@@ -1,0 +1,27 @@
+meta {
+  name: Start Raffle
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/start
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+docs {
+  Arranca el sorteo, sin cuerpo: lee la puerta en vivo, aplica la lista negra del CRM, la lista de
+  DO Travel Awards en vigor y las decisiones manuales, y congela una fila por cada persona en la
+  puerta, calificada o no. **200** con el sorteo, igual que su lectura, ya en `in_progress` y con
+  `startedAt`, `startedById` y los `warnings` en vigor.
+
+  **409 EVENT_NOT_EDITABLE**, **409 RAFFLE_NOT_DRAFT** (también el segundo de dos arranques
+  simultáneos; **409 RAFFLE_COMPLETED** si ya se completó), **503 ATTENDANCE_UNAVAILABLE**, **409 ATTENDANCE_TOO_MANY_ROWS**,
+  **503 CRM_UNAVAILABLE** y **409 RAFFLE_NO_PARTICIPANTS** si el bombo queda vacío, en ese orden.
+  Un arranque rechazado no escribe nada. Exige `raffles:draw`.
+}

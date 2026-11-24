@@ -1,0 +1,27 @@
+meta {
+  name: Draw Prize
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/prizes/:prizeId/draw
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  prizeId: {{prizeId}}
+}
+
+docs {
+  Sortea el premio, sin cuerpo: el servidor elige al ganador entre los elegibles, bajo un bloqueo del
+  sorteo, y guarda el sorteo con su código de retiro. **200** con el premio entero: `state` en
+  `drawn` y sus `draws` del más nuevo al más viejo, cada uno con su `redemptionCode`. Sin correo.
+
+  **409 RAFFLE_NOT_IN_PROGRESS** en `draft`, **409 RAFFLE_COMPLETED**, **409 PRIZE_ALREADY_DRAWN**
+  (trae el sorteo vivo en `draw`) y **409 RAFFLE_POOL_EXHAUSTED** (con `participants`,
+  `excludedByVoid`, `excludedByPerson` y `excludedByCompany`), en ese orden. Un sorteo rechazado no
+  escribe nada. No se reintenta solo. Exige `raffles:draw`.
+}

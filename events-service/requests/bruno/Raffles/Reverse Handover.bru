@@ -1,0 +1,36 @@
+meta {
+  name: Reverse Handover
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/prizes/:prizeId/handover/reverse
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  prizeId: {{prizeId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "reason": "Se marcó el premio equivocado."
+  }
+}
+
+docs {
+  Revierte la entrega viva del premio. `reason` es obligatorio, de hasta 500 caracteres, y se
+  recorta: **400** si falta o sobra de largo. La entrega no se borra: guarda cuándo, quién y por qué,
+  y su firma sigue a mano por su id. **200** con el premio entero, que vuelve a `drawn`.
+
+  **409 RAFFLE_NOT_IN_PROGRESS** en `draft` y **409 PRIZE_NOT_REDEEMED** sin entrega viva. Se
+  admite con el sorteo completado y con el evento cerrado. No se reintenta solo: un reintento tardío
+  revertiría una entrega posterior. Exige `raffles:draw`.
+}

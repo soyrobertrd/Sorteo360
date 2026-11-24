@@ -1,0 +1,20 @@
+meta {
+  name: 04 Start Event
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/start
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcEventId}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq in_progress
+}

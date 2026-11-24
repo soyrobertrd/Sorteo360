@@ -1,0 +1,33 @@
+meta {
+  name: 14 Create Service Supplier
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/service-suppliers
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "category": "{{category}}",
+    "companyId": "{{lifecycleCompanyId}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setVar("lcServiceSupplierId", res.getBody());
+    console.log("lcServiceSupplierId =", bru.getVar("lcServiceSupplierId"));
+  }
+}
+
+assert {
+  res.status: eq 201
+}

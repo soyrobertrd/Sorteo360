@@ -1,0 +1,42 @@
+meta {
+  name: Create Round
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/rounds
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Ronda de apertura",
+    "description": "Premios de los patrocinadores locales"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setVar("roundId", res.getBody());
+    console.log("roundId =", bru.getVar("roundId"));
+  }
+}
+
+docs {
+  Agrega una ronda al final del sorteo. El número no viaja: lo asigna el servicio, el siguiente
+  al de la última ronda. **201** con el id, que queda en `roundId`.
+
+  **404 RAFFLE_NOT_FOUND** si el evento no tiene sorteo, **409 EVENT_NOT_EDITABLE** si el evento
+  está cerrado o cancelado, **409 RAFFLE_COMPLETED** si el sorteo ya se completó. Exige
+  `raffles:write`.
+}

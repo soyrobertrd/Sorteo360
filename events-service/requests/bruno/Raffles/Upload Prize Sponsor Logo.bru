@@ -1,0 +1,40 @@
+meta {
+  name: Upload Prize Sponsor Logo
+  type: http
+  seq: 26
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/prizes/:prizeId/logo
+  body: multipartForm
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  prizeId: {{prizeId}}
+}
+
+body:multipart-form {
+  file: @file(Raffles/firma.png)
+}
+
+docs {
+  Sube el logo de la empresa patrocinadora del premio, en el campo `file` de un formulario
+  `multipart/form-data`. Un premio tiene a lo sumo un logo: subir otro reemplaza el anterior, que
+  queda desenlazado con su archivo intacto. `Raffles/firma.png` sirve para probar.
+
+  **201** con `fileId`, `fileName` y `missing`; los bytes se piden a `GET /v1/files/{fileId}/content`.
+  **404 PRIZE_NOT_FOUND** si no es de este sorteo, **409 PRIZE_HAS_DRAWS** si ya se sorteó,
+  **409 PRIZE_NOT_SPONSORED** sin patrocinador, en ese orden, y **400 FILE_TYPE_NOT_ALLOWED** si no
+  es una imagen. **503 FILE_STORE_UNAVAILABLE** con el almacenamiento caído. Ninguno escribe nada.
+  Exige `raffles:write`.
+
+  Desde la terminal:
+
+  ```
+  curl -X POST "$BASE_URL/v1/events/$EVENT_ID/raffle/prizes/$PRIZE_ID/logo" \
+    -H "Authorization: Bearer $TOKEN" \
+    -F "file=@logo.png;type=image/png"
+  ```
+}

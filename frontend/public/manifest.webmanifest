@@ -1,0 +1,22 @@
+{
+  "name": "Sorteo360 Scanner PWA",
+  "short_name": "Sorteo360 Scan",
+  "description": "Terminal PWA para Check-in QR de Participantes y Validación de Certificados de Premios",
+  "start_url": "/scanner",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#020617",
+  "theme_color": "#0d3b7d",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%232563eb'/%3E%3Cpath d='M48 48h32v32H48zm64 0h32v32h-32zm-64 64h32v32H48zm64 64h32v32h-32z' fill='white'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%232563eb'/%3E%3Cpath d='M128 128h96v96h-96zm160 0h96v96h-96zm-160 160h96v96h-96zm160 160h96v96h-96z' fill='white'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+meta {
+  name: Evaluate Service Supplier
+  type: http
+  seq: 10
+}
+
+put {
+  url: {{baseUrl}}/v{{apiVersion}}/service-suppliers/:id/evaluations/:eventId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: {{serviceSupplierId}}
+  eventId: {{eventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "serviceQuality": 5,
+    "punctuality": 4,
+    "valueForMoney": 4,
+    "communication": 5,
+    "wouldHireAgain": true,
+    "comment": "Montaje a tiempo y buena coordinación."
+  }
+}
+
+docs {
+  Califica al proveedor por su trabajo en el evento, o corrige esa calificación: hay una por
+  proveedor y evento, y volver a enviarla la reemplaza conservando su `id`. **200** con la
+  evaluación, **404** si el proveedor o el evento no existen. Exige `service-suppliers:write`.
+
+  Solo en un evento cerrado (**409** `SUPPLIER_EVALUATION_EVENT_NOT_CLOSED`) y a un proveedor que
+  ganó una cotización de ese evento (**409** `SUPPLIER_EVALUATION_SUPPLIER_NOT_WINNER`). Las
+  cuatro notas van de 1 a 5 y `wouldHireAgain` es obligatorio (**400** si no). "No lo volvería a
+  contratar" nunca cambia `isHireable`.
+}

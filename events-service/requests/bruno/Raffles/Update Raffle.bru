@@ -1,0 +1,48 @@
+meta {
+  name: Update Raffle
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "visualStyle": "ball_tombola",
+    "showPrizeOnScreen": true,
+    "animationSeconds": 8,
+    "requiresPresenceConfirmation": true,
+    "onePrizePerPerson": true,
+    "onePrizePerCompany": false,
+    "notaryName": "Ana Pérez",
+    "notaryIdentityDocument": "001-0000001-1",
+    "witnessOneName": "Luis Gómez",
+    "witnessOneIdentityDocument": "001-0000002-2",
+    "witnessTwoName": "María Díaz",
+    "witnessTwoIdentityDocument": "001-0000003-3",
+    "pickupInstructions": "Stand de MITUR, hasta el viernes a las 18:00."
+  }
+}
+
+docs {
+  Reemplaza la configuración **completa** del sorteo (ADR-0009). Una autoridad o unas
+  `pickupInstructions` omitidas se **borran**; omitir cualquiera de los otros seis campos es un
+  **400**, y unas instrucciones de más de 1000 caracteres también. `visualStyle` es uno de
+  `roulette`, `ball_tombola`, `sequential_names`; `animationSeconds` va de 5 a 30.
+
+  **204** si actualizó, **404 RAFFLE_NOT_FOUND** si el evento no tiene sorteo,
+  **409 EVENT_NOT_EDITABLE** si el evento está cerrado o cancelado, **409 RAFFLE_COMPLETED** si
+  el sorteo ya se completó. Exige `raffles:write`.
+}

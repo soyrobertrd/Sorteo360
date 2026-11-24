@@ -1,0 +1,37 @@
+meta {
+  name: 02 Patch in Planning
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcEventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Roadshow Ciclo de Vida (editado)",
+    "startDate": "2026-10-01",
+    "endDate": "2026-10-07",
+    "optOfficeId": "{{optOfficeId}}",
+    "language": "en",
+    "invitedCount": 90
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.name: eq Roadshow Ciclo de Vida (editado)
+  res.body.invitedCount: eq 90
+  res.body.status: eq planning
+}

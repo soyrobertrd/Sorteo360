@@ -1,0 +1,25 @@
+meta {
+  name: 10 Verify Event Closed
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq closed
+}
+
+docs {
+  Verificación final: relee el evento y confirma que quedó `closed`. Inspeccioná `totalCost`
+  en la respuesta — debería estar poblado a partir de la cotización aprobada.
+}

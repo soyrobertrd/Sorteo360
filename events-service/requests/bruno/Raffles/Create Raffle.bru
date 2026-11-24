@@ -1,0 +1,25 @@
+meta {
+  name: Create Raffle
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+docs {
+  Crea el sorteo del evento, sin cuerpo. Nace en `draft` con los valores por omisión: ruleta,
+  premio visible, seis segundos de animación, sin confirmación de presencia, un premio por
+  persona sí y uno por empresa no, y las autoridades en blanco. **201** con el id.
+
+  **409 RAFFLE_ALREADY_EXISTS** si el evento ya tiene uno (a lo sumo uno por evento),
+  **409 EVENT_NOT_EDITABLE** si el evento está cerrado o cancelado, **404 EVENT_NOT_FOUND** si no
+  existe. Exige `raffles:write`.
+}

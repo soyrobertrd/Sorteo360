@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\shared\Sorteo360.Platform\Sorteo360.Platform.csproj" />
+    <ProjectReference Include="..\Sorteo360.Events.Core\Sorteo360.Events.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <PackageReference Include="Polly.Core" />
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
+    <PackageReference Include="PDFsharp-MigraDoc" />
+    <PackageReference Include="Net.Codecrete.QrCodeGenerator" />
+  </ItemGroup>
+
+  <!-- Expose internals for unit testing internal classes, and for integration tests
+       that seed persistence data directly through the DbContext -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sorteo360.Events.Tests.Unit" />
+    <InternalsVisibleTo Include="Sorteo360.Events.Tests.Integration" />
+  </ItemGroup>
+
+  <!-- La tipografía del acta viaja dentro del ensamblado: en Linux PDFsharp no encuentra fuentes
+       del sistema, y así la imagen no gana ninguna línea de apt (ADR-0024). -->
+  <ItemGroup>
+    <EmbeddedResource Include="NotarialRecords/Fonts/*.ttf" />
+  </ItemGroup>
+
+</Project>

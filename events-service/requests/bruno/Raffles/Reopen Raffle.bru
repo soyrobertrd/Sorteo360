@@ -1,0 +1,25 @@
+meta {
+  name: Reopen Raffle
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/reopen
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+docs {
+  Devuelve a `draft` un sorteo arrancado antes de tiempo, sin cuerpo: borra la lista congelada de
+  la puerta y olvida `startedAt`, `startedById` y `awardsBatchId`. Las decisiones manuales se
+  conservan. **200** con el sorteo, igual que su lectura.
+
+  **409 EVENT_NOT_EDITABLE**, **409 RAFFLE_NOT_IN_PROGRESS** en `draft`, **409 RAFFLE_COMPLETED** y
+  **409 RAFFLE_HAS_DRAWS** si se sorteó cualquier premio, aunque se haya anulado, en ese orden.
+  Exige `raffles:draw`.
+}

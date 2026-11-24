@@ -1,0 +1,42 @@
+meta {
+  name: Flow - Event Lifecycle
+  seq: 7
+}
+
+docs {
+  # Flujo: ciclo de vida del evento (transiciones, rechazos y cascada)
+
+  Ejecutá esta carpeta con el **runner** (click derecho en la carpeta → Run) con el
+  environment **Local** seleccionado y el servicio levantado. Cada paso trae asserts,
+  incluidos los negativos (400/409), así que el runner queda todo en verde si el
+  state machine se comporta como debe.
+
+  Máquina de estados: `planning → in_progress → closed`, y `cancelled` desde cualquier
+  estado no terminal. Transiciones siempre manuales; `closed`/`cancelled` son terminales.
+
+  ## Escenario A — transiciones y rechazos (pasos 01-12)
+  1.  Create Event             → `lcEventId` (estado planning)
+  2.  Patch in Planning         (200; los campos de planificación son editables)
+  3.  Close in Planning        → 409 (el cierre exige in_progress)
+  4.  Start Event            (200; planning → in_progress)
+  5.  Start Again          → 409 (solo desde planning)
+  6.  Patch in In Progress      (200; sigue siendo no terminal)
+  7.  Cancel without Reason        → 400 (la razón es obligatoria)
+  8.  Cancel Event           (200; razón persistida en cancellationReason)
+  9.  Start after Cancel     → 409 (estado terminal)
+  10. Patch after Cancel       → 409 (estado terminal)
+  11. Cancel Again         → 409 (estado terminal)
+  12. Verify Event Cancelled   (GET; assert cancelled + cancellationReason)
+
+  ## Escenario B — cascada sobre cotizaciones abiertas (pasos 13-18)
+  13. Create Event Cascade   → `lcCascadeEventId`
+  14. Create Service Supplier          → `lcServiceSupplierId`
+  15. Add Candidate             (crea la cotización en draft de forma lazy)
+  16. Get Quote Draft      (200; assert status draft)
+  17. Cancel Event Cascade (200; soft-cancela las cotizaciones no terminales)
+  18. Get Quote after Cancel → 404 (la cotización dejó de ser visible)
+
+  Variables de runtime propias del flujo (`lcEventId`, `lcCascadeEventId`,
+  `lcServiceSupplierId`) para no pisar las del flujo E2E. `category` viene del
+  environment (`Venue`).
+}

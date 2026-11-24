@@ -1,0 +1,79 @@
+# Formato compartido del monorepo. Existe porque las mezclas entre ramas venían
+# llenas de conflictos que no eran cambios: cada editor reordenaba los `using` y
+# reescribía el espaciado a su manera, y eso enterraba los conflictos reales.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,css,html,yml,yaml}]
+indent_size = 2
+
+[*.md]
+# Dos espacios al final de una línea es un salto de línea en Markdown.
+trim_trailing_whitespace = false
+
+[*.{cs,csx}]
+indent_size = 4
+
+# --- Directivas using ------------------------------------------------------
+# Esta es la regla que motivó el archivo: Visual Studio mandaba `using System.*`
+# al final del bloque y el resto de los editores lo dejaba al principio, así que
+# el mismo archivo cambiaba de forma según quién lo guardara.
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement = outside_namespace:warning
+
+# --- Llaves y espaciado ----------------------------------------------------
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_object_initializers = true
+csharp_new_line_between_query_expression_clauses = true
+
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_indent_labels = one_less_than_current
+
+csharp_space_after_cast = false
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+csharp_space_between_method_call_parameter_list_parentheses = false
+csharp_space_before_colon_in_inheritance_clause = true
+csharp_space_after_colon_in_inheritance_clause = true
+csharp_space_around_binary_operators = before_and_after
+
+csharp_preserve_single_line_statements = false
+csharp_preserve_single_line_blocks = true
+
+# --- Estilo del lenguaje ---------------------------------------------------
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_var_for_built_in_types = false:silent
+csharp_style_var_when_type_is_apparent = true:silent
+csharp_style_expression_bodied_methods = when_on_single_line:silent
+csharp_style_expression_bodied_properties = true:silent
+csharp_prefer_braces = true:silent
+
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_style_readonly_field = true:warning
+
+# --- Nombres ---------------------------------------------------------------
+dotnet_naming_rule.private_fields_camel_case_with_underscore.severity = warning
+dotnet_naming_rule.private_fields_camel_case_with_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_camel_case_with_underscore.style = underscore_camel_case
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case

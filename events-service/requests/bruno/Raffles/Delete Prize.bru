@@ -1,0 +1,20 @@
+meta {
+  name: Delete Prize
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/prizes/:prizeId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  prizeId: {{prizeId}}
+}
+
+docs {
+  Elimina el premio. **204**, **404 PRIZE_NOT_FOUND** si no es de este sorteo.
+}

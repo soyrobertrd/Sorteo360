@@ -1,0 +1,25 @@
+meta {
+  name: Get Prize Eligible
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/prizes/:prizeId/eligible
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  prizeId: {{prizeId}}
+}
+
+docs {
+  Quién puede ganar el premio ahora mismo: `count` y `participants` con `attendeeId`, `displayName`
+  y `company`, ordenados por id. Sin correo: la lista es para un proyector. Es la misma función que
+  usa el sorteo, así que `count` es el `eligiblePoolSize` del próximo si nada cambia entre medio.
+
+  **409 RAFFLE_NOT_IN_PROGRESS** fuera de `in_progress` (también completado) y
+  **409 PRIZE_ALREADY_DRAWN** si el premio tiene un ganador vivo. Sin rol propio.
+}

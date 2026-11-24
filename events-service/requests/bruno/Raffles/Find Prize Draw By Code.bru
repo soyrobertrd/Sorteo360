@@ -1,0 +1,27 @@
+meta {
+  name: Find Prize Draw By Code
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/prize-draws/by-code/:code
+  body: none
+  auth: inherit
+}
+
+params:path {
+  code: {{redemptionCode}}
+}
+
+docs {
+  Busca un sorteo de premio por su código de retiro, en todos los sorteos. `:code` toma
+  `{{redemptionCode}}`, el `redemptionCode` de un sorteo en **Draw Prize** o **Get Raffle**. Sin
+  distinguir mayúsculas, sin guiones ni espacios, la `O` vale `0` y la `I` o la `L` valen `1`, y el
+  `RD` es optativo: `rd7k3mq9xa` y `7K3MQ9XA` encuentran `RD-7K3M-Q9XA`.
+
+  **200** con `drawId`, `eventId`, `raffleId`, `prizeId`, `prizeName`, `winnerName`,
+  `winnerCompany` y `status` (`drawn`, `redeemed` o `voided`), más `void` si se anuló y `handover`
+  (quién y cuándo) si se entregó. **404 REDEMPTION_CODE_NOT_FOUND** si no es un código o ninguno lo
+  tiene. Solo lee: entregar es **Hand Over Prize**. Sin rol propio, basta estar autenticado.
+}

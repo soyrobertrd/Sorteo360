@@ -1,0 +1,498 @@
+{
+  "realm": "sorteo360",
+  "displayName": "Sorteo360",
+  "enabled": true,
+  "registrationAllowed": false,
+  "sslRequired": "external",
+  "loginTheme": "sorteo360",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["es"],
+  "defaultLocale": "es",
+  "passwordPolicy": "length(10) and digits(1) and notUsername and notEmail",
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "roles": {
+    "realm": [
+      {
+        "name": "events:write",
+        "description": "Crear y editar eventos, incluidas sus sedes y configuraciones"
+      },
+      {
+        "name": "events:start",
+        "description": "Iniciar un evento (pasar de planificación a en curso)"
+      },
+      {
+        "name": "events:cancel",
+        "description": "Cancelar un evento con su razón de cancelación"
+      },
+      {
+        "name": "events:close",
+        "description": "Cerrar un evento"
+      },
+      {
+        "name": "feature-switches:write",
+        "description": "Encender y apagar los interruptores de módulos y funciones de Sorteo360"
+      },
+      {
+        "name": "platform-admin",
+        "description": "Superadministrador de plataforma para aprobar o rechazar solicitudes de plan"
+      },
+      {
+        "name": "campaigns:write",
+        "description": "Armar una convocatoria: crear borrador, destinatarios y cargas"
+      },
+      {
+        "name": "campaigns:launch",
+        "description": "Lanzar la convocatoria"
+      },
+      {
+        "name": "convocatorias:read",
+        "description": "Leer el seguimiento de convocatorias"
+      },
+      {
+        "name": "raffles:write",
+        "description": "Armar el sorteo de un evento: configuración, rondas, premios y padrón de participantes"
+      },
+      {
+        "name": "raffles:draw",
+        "description": "Correr el sorteo: iniciar, sortear, anular, entregar premios y emitir el acta"
+      },
+      {
+        "name": "check-in:write",
+        "description": "Puerta de un evento: registrar y revertir check-ins QR"
+      },
+      {
+        "name": "check-in:read",
+        "description": "Leer la lista de check-in de la puerta sin exponer correos"
+      },
+      {
+        "name": "check-in:service-read",
+        "description": "Leer la lista de check-ins de un evento desde events-service para el sorteo (solo cuentas de servicio)"
+      },
+      {
+        "name": "notifications:send",
+        "description": "Entregar una notificación a notification-service (solo cuentas de servicio)"
+      },
+      {
+        "name": "notifications:read",
+        "description": "Leer el historial de envíos de notification-service"
+      },
+      {
+        "name": "platform:staff",
+        "description": "Acceso base del personal a rutas sin política explícita"
+      },
+      {
+        "name": "platform:service",
+        "description": "Acceso base de cuentas de servicio a rutas sin política explícita"
+      },
+      {
+        "name": "opt_coordinator",
+        "description": "Operador: organiza eventos, convocatorias, padrón y ejecuta sorteos y check-in",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "events:write",
+            "events:start",
+            "campaigns:write",
+            "campaigns:launch",
+            "convocatorias:read",
+            "raffles:write",
+            "raffles:draw",
+            "check-in:write",
+            "check-in:read",
+            "platform:staff"
+          ]
+        }
+      },
+      {
+        "name": "opt_director",
+        "description": "Supervisor: todo lo de operador más cancelar/cerrar eventos",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "events:write",
+            "events:start",
+            "events:cancel",
+            "events:close",
+            "campaigns:write",
+            "campaigns:launch",
+            "convocatorias:read",
+            "raffles:write",
+            "raffles:draw",
+            "check-in:write",
+            "check-in:read",
+            "platform:staff"
+          ]
+        }
+      },
+      {
+        "name": "central_admin",
+        "description": "Administrador general: todo lo de supervisor más interruptores de funciones e historial de envíos",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "events:write",
+            "events:start",
+            "events:cancel",
+            "events:close",
+            "feature-switches:write",
+            "platform-admin",
+            "campaigns:write",
+            "campaigns:launch",
+            "convocatorias:read",
+            "notifications:read",
+            "raffles:write",
+            "raffles:draw",
+            "check-in:write",
+            "check-in:read",
+            "platform:staff"
+          ]
+        }
+      },
+      {
+        "name": "event_staff",
+        "description": "Personal de puerta: check-in en el evento y nada más (sin platform:staff)",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "check-in:write",
+            "check-in:read"
+          ]
+        }
+      },
+      {
+        "name": "proyector",
+        "description": "Proyector: visualiza la ruleta y los sorteos en vivo sin permisos de configuración",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "raffles:draw",
+            "platform:staff"
+          ]
+        }
+      },
+      {
+        "name": "account_admin",
+        "description": "Administrador de cuenta cliente: todos los permisos de operación dentro de su cuenta",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "events:write",
+            "events:start",
+            "events:cancel",
+            "events:close",
+            "raffles:write",
+            "raffles:draw",
+            "campaigns:write",
+            "campaigns:launch",
+            "convocatorias:read",
+            "check-in:write",
+            "check-in:read",
+            "platform:staff"
+          ]
+        }
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "events-api",
+      "name": "Eventos API",
+      "description": "Cliente-audiencia de events-service",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "convocatorias-api",
+      "name": "Convocatorias API",
+      "description": "Cliente-audiencia de convocatorias-service",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "notifications-api",
+      "name": "Notifications API",
+      "description": "Cliente-audiencia de notification-service",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "events-service",
+      "name": "Events Service",
+      "description": "Cliente confidencial de events-service (client credentials)",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${EVENTS_SERVICE_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "audiencia-notifications-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "notifications-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "audiencia-convocatorias-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "convocatorias-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "roles-realm-plano",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "account-id-attribute",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "account_id",
+            "claim.name": "account_id",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "convocatorias-service",
+      "name": "Convocatorias Service",
+      "description": "Cliente confidencial de convocatorias-service (client credentials)",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${CONVOCATORIAS_SERVICE_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "audiencia-events-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "events-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "audiencia-notifications-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "notifications-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "roles-realm-plano",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "account-id-attribute",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "account_id",
+            "claim.name": "account_id",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "sorteo360-app",
+      "name": "Sorteo360 App",
+      "description": "Cliente público para el frontend de Sorteo360 (flujo estándar PKCE)",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:*", "https://${APP_DOMAIN}/*"],
+      "webOrigins": ["http://localhost:5173", "http://localhost:5175", "https://${APP_DOMAIN}"],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:*##https://${APP_DOMAIN}/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "audiencia-events-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "events-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "audiencia-convocatorias-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "convocatorias-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "audiencia-notifications-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "notifications-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "roles-realm-plano",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "account-id-attribute",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "account_id",
+            "claim.name": "account_id",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "supervisor",
+      "email": "supervisor@sorteo360.local",
+      "firstName": "Supervisor",
+      "lastName": "Sorteo360",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "localdev", "temporary": false }
+      ],
+      "realmRoles": ["opt_director"]
+    },
+    {
+      "username": "admin",
+      "email": "admin@sorteo360.local",
+      "firstName": "Administrador",
+      "lastName": "Sorteo360",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "localdev", "temporary": false }
+      ],
+      "realmRoles": ["central_admin"]
+    },
+    {
+      "username": "sorteo",
+      "email": "sorteo@sorteo360.local",
+      "firstName": "Sorteo",
+      "lastName": "Sorteo360",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "localdev", "temporary": false }
+      ],
+      "realmRoles": ["proyector"]
+    },
+    {
+      "username": "service-account-events-service",
+      "enabled": true,
+      "serviceAccountClientId": "events-service",
+      "realmRoles": ["notifications:send", "platform:service", "check-in:service-read"],
+      "clientRoles": {
+        "realm-management": ["view-realm", "view-users"]
+      }
+    },
+    {
+      "username": "service-account-convocatorias-service",
+      "enabled": true,
+      "serviceAccountClientId": "convocatorias-service",
+      "realmRoles": ["notifications:send", "notifications:read", "platform:service"]
+    }
+  ]
+}
+

@@ -1,0 +1,56 @@
+meta {
+  name: List Event Images
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/images
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~kind: Cover
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+docs {
+  Imágenes vigentes del evento: `kind`, `fileName`, `contentType`, `sizeBytes` y `createdAt` de
+  cada una, la portada primero y el resto de la más antigua a la más reciente. **200** con la
+  lista (vacía si el evento no tiene ninguna), **404** con código `EVENT_NOT_FOUND` si el evento
+  no existe. `:eventId` toma `{{eventId}}`.
+
+  Cada fila trae dos ids distintos: `id` es la imagen dentro del evento, y es con el que se quita
+  (`DELETE …/images/{imageId}`); `storedFileId` es el archivo, y es con el que se piden los bytes
+  a `/v1/files/{storedFileId}/content`.
+
+  `kind` dice qué papel cumple cada una: `Cover` la portada que encabeza el evento, `Gallery` una
+  foto más de la galería promocional. El parámetro `kind` (desactivado en la colección) filtra
+  por él; sin él vienen los dos tipos. Distingue mayúsculas, y un valor que no exista se rechaza
+  con **400** y código `EVENT_IMAGE_KIND_NOT_SUPPORTED`.
+
+  Una imagen cuyo archivo ya no esté en el almacenamiento se sigue listando, con `missing` en
+  `true`: el nombre y la fecha son lo que permite saber qué falta.
+
+  Las mismas imágenes vienen en **Get Event by Id**, y la portada sola en cada fila de
+  **List Events**, que es lo que deja pintar una grilla sin pedir el detalle de cada evento.
+
+  Subir una es `POST` a la misma ruta con `multipart/form-data` y el archivo en el campo `file`.
+  No está en la colección porque Bruno necesita una ruta de archivo de esta máquina; desde la
+  terminal:
+
+  ```
+  curl -X POST "$BASE_URL/v1/events/$EVENT_ID/images" \
+    -H "Authorization: Bearer $TOKEN" \
+    -F "file=@portada.jpg;type=image/jpeg" \
+    -F "kind=Cover"
+  ```
+
+  El campo `kind` es opcional y omitirlo vale `Gallery`. Solo se admiten imágenes: JPEG, PNG o
+  WEBP. **Un evento tiene una sola portada, y subir otra reemplaza a la anterior**, que queda
+  desenlazada con sus bytes intactos. El cupo del evento cuenta solo las fotos de galería.
+}

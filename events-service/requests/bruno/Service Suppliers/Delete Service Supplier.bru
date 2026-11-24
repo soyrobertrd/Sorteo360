@@ -1,0 +1,20 @@
+meta {
+  name: Delete Service Supplier
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/v{{apiVersion}}/service-suppliers/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: {{serviceSupplierId}}
+}
+
+docs {
+  Soft-delete del proveedor (marca `deleted_at`; las queries lo excluyen). **204** si borró,
+  **404** si no existe.
+}

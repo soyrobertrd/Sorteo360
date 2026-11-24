@@ -1,0 +1,38 @@
+meta {
+  name: Void Prize Draw
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/prizes/:prizeId/void
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  prizeId: {{prizeId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "code": "absent",
+    "note": null
+  }
+}
+
+docs {
+  Anula el ganador vivo del premio. `code` es `absent`, `declined`, `ineligible` u `other`; `note`
+  es opcional, de hasta 500 caracteres, y obligatoria con `other`. Se recorta, y en blanco cuenta
+  como ausente. **400** con un motivo fuera de los cuatro u `other` sin nota. **200** con el premio
+  entero: `state` vuelve a `undrawn` y el sorteo anulado queda en `draws` con su `void`.
+
+  **409 RAFFLE_NOT_IN_PROGRESS** en `draft`, **409 RAFFLE_COMPLETED**, **409 PRIZE_NOT_DRAWN** si
+  no hay ganador vivo y **409 PRIZE_ALREADY_REDEEMED** si ya se entregó, en ese orden. El estado del evento no la frena. No se reintenta solo: un
+  reintento tardío anularía al ganador de un sorteo posterior. Exige `raffles:draw`.
+}

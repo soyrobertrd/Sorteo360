@@ -1,0 +1,23 @@
+meta {
+  name: List Raffles
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/raffles?page=1&pageSize=20
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 1
+  pageSize: 20
+}
+
+docs {
+  Los sorteos de todos los eventos, del evento más reciente al más viejo. **200** con la página:
+  cada sorteo trae `eventName` y `eventStartDate` (leídos del evento), `state`, `prizeCount`,
+  `drawnCount` (premios con ganador vivo, entregados incluidos) y `redeemedCount`. El sorteo de un
+  evento eliminado no aparece. Sin rol propio, basta estar autenticado.
+}

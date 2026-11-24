@@ -1,0 +1,26 @@
+# ============================================================================
+# Sorteo360 — Reverse proxy Caddy para MODO SALÓN (sin internet).
+# Emite certificados autofirmados locales con `tls internal` para HTTPS en LAN
+# (requerido por la cámara QR del navegador en dispositivos móviles/tablets).
+# ============================================================================
+
+{$APP_DOMAIN:sorteo.local} {
+	tls internal
+	encode gzip zstd
+
+	reverse_proxy frontend:8080 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
+}
+
+{$AUTH_DOMAIN:auth.sorteo.local} {
+	tls internal
+
+	reverse_proxy keycloak:8080 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Port 443
+	}
+}
+

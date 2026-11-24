@@ -1,0 +1,36 @@
+meta {
+  name: Set Attendee Override
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/attendees/overrides
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "ana@mitur.gob.do",
+    "decision": "included",
+    "note": "Invitada por la dirección"
+  }
+}
+
+docs {
+  Mete a un asistente al bombo (`included`) o lo saca (`excluded`), o reemplaza la decisión que
+  hubiera. **204**. La puerta se lee en vivo: hasta PGTI-130 no hay lista real y esto responde
+  **503 ATTENDANCE_UNAVAILABLE**. **409 PARTICIPANT_NOT_CHECKED_IN** si el correo no está en la
+  puerta; una inclusión además **409 PARTICIPANT_WALK_IN**, **PARTICIPANT_CONTACT_UNRESOLVED** o
+  **PARTICIPANT_DO_NOT_INVITE**, y **503 CRM_UNAVAILABLE** si el CRM no contesta.
+  **409 RAFFLE_NOT_DRAFT** si el sorteo ya arrancó, **409 RAFFLE_COMPLETED** si ya se completó.
+}

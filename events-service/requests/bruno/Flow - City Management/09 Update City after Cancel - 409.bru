@@ -1,0 +1,36 @@
+meta {
+  name: 09 Update City after Cancel - 409
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/cities/:cityId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{gcCancelEventId}}
+  cityId: {{gcCancelCityId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Orlando",
+    "country": "Estados Unidos",
+    "timeZone": "America/New_York"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Un evento cancelado ya no corrige su ciudad: 409 (`EVENT_NOT_EDITABLE`).
+}

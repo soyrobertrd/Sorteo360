@@ -1,0 +1,21 @@
+meta {
+  name: Start Event
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:id/start
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: {{eventId}}
+}
+
+docs {
+  Inicia el evento: transición manual `planning → in_progress` (nunca derivada de fechas).
+  Sin body. **200** con el detalle actualizado, **404** si no existe, **409** si el evento
+  no está en `planning`.
+}

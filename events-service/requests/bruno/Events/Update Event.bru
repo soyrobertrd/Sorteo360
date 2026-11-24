@@ -1,0 +1,69 @@
+meta {
+  name: Update Event
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: {{eventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Roadshow Europa 2026 (editado)",
+    "startDate": "2026-09-01",
+    "endDate": "2026-09-06",
+    "optOfficeId": "{{optOfficeId}}",
+    "optContactId": "{{optContactId}}",
+    "language": "es",
+    "visibility": "private",
+    "seatingLayout": "Classroom",
+    "externalUrl": "https://mitur.example/roadshow-europa",
+    "invitedCount": 175,
+    "description": "Gira promocional reducida a dos ciudades.",
+    "estimatedBudget": {
+      "amount": 98000,
+      "currency": "EUR"
+    }
+  }
+}
+
+docs {
+  Edita los campos mutables del evento: `name`, `startDate`, `endDate`, `optOfficeId`,
+  `optContactId`, `language`, `visibility`, `seatingLayout`, `externalUrl`, `description`,
+  `invitedCount`, `estimatedBudget`. El `type` es inmutable y el
+  `totalCost` no es editable (se materializa al cerrar). Enviá SIEMPRE el set completo de
+  campos mutables: los opcionales que no mandes quedan en null.
+
+  **Obligatorios:** `name`, `startDate`, `endDate`, `optOfficeId`, `language`.
+
+  **Dos excepciones a la regla de arriba, a propósito.** `language` es obligatorio: mandarlo
+  nulo u omitirlo responde **400** `EVENT_LANGUAGE_REQUIRED`, porque un evento sin idioma no
+  tiene plantilla con la que convocar. Y `visibility` es el único campo opcional que omitir
+  **no** borra: sin valor, el evento conserva la que tenía, para que una edición hecha desde un
+  formulario sin control de visibilidad no despublique en silencio un evento anunciado. Un
+  valor fuera de `public` / `private` es 400.
+  `seatingLayout` (el montaje del salón) sigue la regla general: omitirlo o mandarlo nulo lo
+  borra. Un valor fuera de `Banquet` | `Auditorium` | `Conference` | `Cocktail` | `UShape` |
+  `Classroom` es 400 sobre el campo, sin código.
+  Reglas: `endDate >= startDate`; `invitedCount > 0`; `externalUrl` URL absoluta;
+  `estimatedBudget` en `USD` o `EUR` y con monto mayor que cero
+  (`EVENT_BUDGET_CURRENCY_NOT_SUPPORTED`, `EVENT_BUDGET_AMOUNT_INVALID`, los dos **400**).
+
+  Los ids de OPT se validan contra el CRM igual que al crear, incluso si no cambiaron: la
+  oficina pudo cerrar desde el alta.
+
+  **200** con el detalle actualizado, **404** si no existe, **409** si el evento está en un
+  estado terminal (`closed` / `cancelled`) o si un id de OPT ya no sirve, **503**
+  `CRM_UNAVAILABLE` si el CRM no contesta.
+}

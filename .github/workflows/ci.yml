@@ -1,0 +1,84 @@
+name: ci
+
+# Build y tests en cada PR y en cada push a la rama principal: backend y frontend.
+
+on:
+  pull_request:
+  push:
+    branches: [main, development]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore Sorteo360.Platform.slnx
+
+      - name: Build
+        run: dotnet build Sorteo360.Platform.slnx -c Release --no-restore
+
+      # Cada proyecto de Tests.Unit explícito, nunca la .slnx entera: un proyecto de test que
+      # referencia un Microsoft.NET.Sdk.Web corre 0 tests y sale limpio bajo --no-build.
+      - name: Test
+        run: |
+          for project in \
+            shared/Sorteo360.Platform.Tests.Unit/Sorteo360.Platform.Tests.Unit.csproj \
+            events-service/Sorteo360.Events.Tests.Unit/Sorteo360.Events.Tests.Unit.csproj \
+            convocatorias-service/Sorteo360.Convocatorias.Tests.Unit/Sorteo360.Convocatorias.Tests.Unit.csproj \
+            notification-service/Sorteo360.Notifications.Tests.Unit/Sorteo360.Notifications.Tests.Unit.csproj; do
+            dotnet test "$project" -c Release
+          done
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      - run: npm test
+
+  # Pruebas de humo en modo mock: no necesitan backend ni Keycloak (ver playwright.config.ts).
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

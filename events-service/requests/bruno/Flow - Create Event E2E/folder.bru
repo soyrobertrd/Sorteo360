@@ -1,0 +1,28 @@
+meta {
+  name: Flow - Create Event E2E
+  seq: 6
+}
+
+docs {
+  # Flujo end-to-end: crear un evento completo
+
+  Ejecutá esta carpeta con el **runner** (click derecho en la carpeta → Run, o el botón
+  Run de la colección apuntando a esta carpeta) con el environment **Local** seleccionado y
+  el servicio levantado.
+
+  Los pasos comparten variables de runtime que se setean solos:
+  `eventId` (01) → `serviceSupplierId` (02) → `candidateId` (03). `category` viene del
+  environment (`Venue`).
+
+  Secuencia:
+  1.  Create Event           → `eventId`
+  2.  Create Service Supplier → `serviceSupplierId`
+  3.  Add Candidate          → `candidateId`
+  4.  Set Recommended        (exactamente 1 recomendado)
+  5.  Submit Quote           (draft → submitted; con 1 candidato exige excepción)
+  6.  Approve Quote          (como `admin.pgti360`: quien somete no aprueba)
+  7.  Update Final Amount    (requiere cotización aprobada)
+  8.  Start Event            (planning → in_progress; el cierre exige in_progress)
+  9.  Close Event            (calcula totalCost; in_progress → closed)
+  10. Verify Event Closed    (assert status = closed)
+}

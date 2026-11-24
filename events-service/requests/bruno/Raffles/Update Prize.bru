@@ -1,0 +1,36 @@
+meta {
+  name: Update Prize
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/prizes/:prizeId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  prizeId: {{prizeId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "roundId": "{{roundId}}",
+    "name": "3 botellas de ron",
+    "value": "RD$2,000",
+    "sponsorCompanyId": "{{companyId}}"
+  }
+}
+
+docs {
+  Reemplaza el premio **completo** (ADR-0009): lo opcional omitido se **borra**. `roundId` es
+  obligatorio; otro que el actual mueve el premio a esa ronda. No hay `quantity`. **204**,
+  **404 PRIZE_NOT_FOUND** si el premio no es de este sorteo, **404 ROUND_NOT_FOUND** si la ronda
+  tampoco lo es. Omitir `sponsorCompanyId` quita el patrocinador; se valida como al crear.
+}

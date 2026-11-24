@@ -1,0 +1,15 @@
+meta {
+  name: Collaborators
+  seq: 10
+}
+
+docs {
+  Colaboradores del CRM (`crm-service`, `{{crmBaseUrl}}`), no del servicio de eventos.
+
+  Un colaborador se registra eligiendo a un empleado de Recursos Humanos
+  (ADR-0038, decisión 5): primero "Search HR Employees", que guarda el `hrId`
+  de la primera fila, y después "Create Collaborator" con ese id.
+
+  Las "My" leen el propio expediente por `v1/me/collaborator` (PGTI-370), con el
+  usuario `colaborador`, que solo tiene el compuesto `collaborator`.
+}

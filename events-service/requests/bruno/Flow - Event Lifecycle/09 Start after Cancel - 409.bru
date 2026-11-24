@@ -1,0 +1,23 @@
+meta {
+  name: 09 Start after Cancel - 409
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/start
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcEventId}}
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  `cancelled` es terminal: no admite ninguna transición posterior.
+}

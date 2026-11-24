@@ -1,0 +1,388 @@
+# ============================================================================
+# Stack base de la plataforma Sorteo360.
+#
+# Define la infraestructura compartida (PostgreSQL) y los servicios.
+# Pensado para correr localmente con `docker compose up`, y como base para el
+# despliegue en producción (docker-compose.prod.yml).
+#
+# Convención de perfiles (profiles):
+#   - La infraestructura NO tiene perfil → siempre arranca.
+#   - Cada servicio pertenece a los perfiles [all, <su-nombre>].
+#   - `COMPOSE_PROFILES=all` (en .env) hace que `docker compose up` levante todo.
+#   - Para correr solo un servicio:  COMPOSE_PROFILES=events docker compose up
+# ============================================================================
+name: sorteo360
+
+services:
+  # --------------------------------------------------------------------------
+  # Infraestructura compartida
+  # --------------------------------------------------------------------------
+  # La CA y el certificado de postgres. Corre en cada despliegue antes que
+  # postgres: la primera vez crea la CA del entorno, y después solo renueva el certificado
+  # del servidor cuando está por vencer. Verlo como "exited (0)" es lo normal. Imagen
+  # propia porque postgres:17-alpine no trae openssl; el script se monta como roles.sh.
+  postgres-certs:
+    build:
+      context: ./infra/postgres-setup
+      dockerfile: Dockerfile
+    image: ${REGISTRY:-sorteo360}/postgres-certs:${TAG:-local}
+    command: ["sh", "/setup/certs.sh"]
+    volumes:
+      - ./infra/postgres-setup/certs.sh:/setup/certs.sh:ro
+      - postgres-tls:/tls
+      - postgres-ca:/ca
+    restart: "no"
+    networks: [sorteo360-net]
+
+  postgres:
+    image: postgres:17-alpine
+    # TLS obligatorio para toda conexión por red. Todo va por flags y por un
+    # pg_hba.conf montado, nunca en la configuración de la carpeta de datos: revertir este
+    # archivo devuelve exactamente el servidor de antes.
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/etc/postgresql/tls/server.crt
+      - -c
+      - ssl_key_file=/etc/postgresql/tls/server.key
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sorteo360}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Scripts de init (creación de DBs/esquemas por servicio). Se ejecutan
+      # solo la primera vez, cuando el volumen está vacío.
+      - ./infra/postgres/:/docker-entrypoint-initdb.d/:ro
+      # Lo mismo en docker-compose.override.yml, que reemplaza esta lista.
+      - postgres-tls:/etc/postgresql/tls:ro
+      - ./infra/postgres-setup/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    depends_on:
+      postgres-certs:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sorteo360} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [sorteo360-net]
+
+  # Un login por servicio: cada servicio y Keycloak entran con el suyo, dueño solo
+  # de su base, y no con el superusuario. Corre en cada despliegue, después de que postgres
+  # está sano y antes que cualquier servicio; crea lo que falta, corrige la propiedad y vuelve
+  # a fijar las claves, y sale. Verlo como "exited (0)" es lo normal.
+  #
+  # El script vive en infra/postgres-setup/ y no en infra/postgres/, que se monta en
+  # /docker-entrypoint-initdb.d. Se corre con `sh` explícito para que el bit de ejecución
+  # del bind mount no importe.
+  postgres-roles:
+    image: postgres:17-alpine
+    command: ["sh", "/setup/roles.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-sorteo360}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-localdev}
+      # Por TLS y verificando el certificado, como los servicios.
+      PGSSLMODE: verify-full
+      PGSSLROOTCERT: /etc/postgresql-ca/ca.crt
+      EVENTS_DB_PASSWORD: ${EVENTS_DB_PASSWORD:-localdev}
+      CONVOCATORIAS_DB_PASSWORD: ${CONVOCATORIAS_DB_PASSWORD:-localdev}
+      NOTIFICATIONS_DB_PASSWORD: ${NOTIFICATIONS_DB_PASSWORD:-localdev}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-localdev}
+    volumes:
+      - ./infra/postgres-setup/roles.sh:/setup/roles.sh:ro
+      - postgres-ca:/etc/postgresql-ca:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks: [sorteo360-net]
+
+  # Keycloak: proveedor de identidad de la plataforma (ADR-0004). Emite los JWT
+  # que validan los servicios; usuarios, roles y clientes se administran en su
+  # consola (http://localhost:${KEYCLOAK_PORT}). Aquí corre en modo dev con el
+  # realm sorteo360 importado desde infra/keycloak/ (roles + usuarios de prueba,
+  # solo la primera vez que el realm no existe). En producción corre con start
+  # sin importar datos de desarrollo.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-localdev}
+      KC_DB: postgres
+      KC_DB_URL: "jdbc:postgresql://postgres:5432/keycloak?sslmode=verify-full&sslrootcert=/etc/postgresql-ca/ca.crt"
+      KC_DB_USERNAME: keycloak_app
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-localdev}
+      # Expone /health/ready en el puerto de gestión 9000 (para el healthcheck).
+      KC_HEALTH_ENABLED: "true"
+      # El realm importado referencia este valor como ${EVENTS_SERVICE_CLIENT_SECRET}:
+      # es el secreto del cliente confidencial events-service, con el que ese servicio
+      # pedirá su propio token (client credentials). Solo aplica en local al importar
+      # el realm; en producción se administra desde la consola.
+      EVENTS_SERVICE_CLIENT_SECRET: ${EVENTS_SERVICE_CLIENT_SECRET:-localdev-events-service}
+      # Ídem para el cliente confidencial convocatorias-service, referenciado en el
+      # realm como ${CONVOCATORIAS_SERVICE_CLIENT_SECRET}.
+      CONVOCATORIAS_SERVICE_CLIENT_SECRET: ${CONVOCATORIAS_SERVICE_CLIENT_SECRET:-localdev-convocatorias-service}
+    ports:
+      - "${KEYCLOAK_PORT:-8082}:8080"
+    volumes:
+      - ./infra/keycloak/:/opt/keycloak/data/import:ro
+      # El tema de login va en su propia carpeta, fuera de la de import: un tema no
+      # es un realm, y Keycloak lee todo lo que hay en data/import como realms.
+      - ./infra/keycloak-themes/:/opt/keycloak/themes:ro
+      # La CA de postgres, para verificar su certificado. Solo ca.crt, nunca una llave.
+      - postgres-ca:/etc/postgresql-ca:ro
+    depends_on:
+      postgres-roles:
+        condition: service_completed_successfully
+    healthcheck:
+      # La imagen no trae curl/wget: se consulta /health/ready (puerto de
+      # gestión 9000) con el /dev/tcp de bash.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    networks: [sorteo360-net]
+
+  # Mailpit: servidor SMTP real que se queda con todo lo que se le manda y lo muestra
+  # en una bandeja web. Es el sumidero de desarrollo y de tests.
+  #
+  # NO ES ANDAMIO: el camino de producción —MailKit, STARTTLS— corre contra esto sin
+  # cambiar una línea; el interruptor hacia el envío real es Smtp__Host y nada más.
+  mailpit:
+    image: axllent/mailpit:v1.31
+    environment:
+      MP_MAX_MESSAGES: "${MAILPIT_MAX_MESSAGES:-500}"
+    ports:
+      # Solo la UI se publica al host. El puerto SMTP (1025) se alcanza por DNS de la
+      # red de Compose, que es por donde le habla notification-service.
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      # La imagen no trae curl: el propio binario consulta su /readyz.
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [sorteo360-net]
+
+  # --------------------------------------------------------------------------
+  # Servicios
+  # --------------------------------------------------------------------------
+  events-service:
+    # El contexto es la raíz del repo, no ./events-service: el servicio referencia
+    # el chasis compartido en shared/, y un ProjectReference fuera
+    # del contexto no se resuelve. El .dockerignore de la raíz recorta el resto.
+    build:
+      context: .
+      dockerfile: events-service/Dockerfile
+    image: ${REGISTRY:-sorteo360}/events-service:${TAG:-local}
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      # Infraestructura: se referencia por el NOMBRE del servicio (DNS de la red),
+      # nunca por IP ni localhost.
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=events;Username=events_app;Password=${EVENTS_DB_PASSWORD:-localdev};SSL Mode=VerifyFull;Root Certificate=/etc/postgresql-ca/ca.crt"
+      # Identidad (Keycloak): el servicio valida los JWT del realm sorteo360.
+      # Authority usa el DNS interno; el issuer adicional acepta tokens pedidos
+      # desde el host (localhost:${KEYCLOAK_PORT}), cuyo iss difiere del interno.
+      Keycloak__Authority: "http://keycloak:8080/realms/sorteo360"
+      Keycloak__Audience: "events-api"
+      # El mismo interruptor que el SPA: con false no existen /v1/accounts/signup ni /activate.
+      Accounts__SignupEnabled: "${SIGNUP_ENABLED:-false}"
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuer: "http://localhost:${KEYCLOAK_PORT:-8082}/realms/sorteo360"
+      # Identidad propia con la que este servicio llama a otros (client credentials).
+      ServiceAuth__ClientId: "events-service"
+      ServiceAuth__ClientSecret: ${EVENTS_SERVICE_CLIENT_SECRET:-localdev-events-service}
+      # La lista de check-ins de convocatorias, si se usa la puerta externa.
+      Services__Convocatorias__BaseUrl: "http://convocatorias-service:8080"
+      # El realm al que este servicio consulta operadores del sorteo para el acta.
+      Services__Keycloak__BaseUrl: "http://keycloak:8080"
+      QuoteApprovers__Realm: "sorteo360"
+      QuoteApprovers__RoleGraphTtlMinutes: "${QUOTE_APPROVERS_ROLE_GRAPH_TTL_MINUTES:-360}"
+      QuoteApprovers__MembershipTtlMinutes: "${QUOTE_APPROVERS_MEMBERSHIP_TTL_MINUTES:-5}"
+      # Por dónde salen los correos al ganador del sorteo.
+      Services__Notifications__BaseUrl: "http://notification-service:8080"
+      # URL pública del portal web interno para enlaces en correos.
+      App__BaseUrl: "http://localhost:${FRONTEND_PORT:-5175}"
+      # Remitente de los correos salientes de eventos/sorteos.
+      Notifications__FromAddress: "no-reply@sorteo360.local"
+      # Cuántos segundos se considera vigente la copia de la lista de la puerta de un sorteo. Es
+      # corta porque la gente sigue llegando; arrancar el sorteo la lee siempre en vivo.
+      RaffleAttendance__CacheTtlSeconds: "${RAFFLE_ATTENDANCE_CACHE_TTL_SECONDS:-30}"
+      # Almacenamiento de archivos subidos (imágenes de eventos, logos, actas).
+      FileStore__Provider: "filesystem"
+      FileStore__Filesystem__RootPath: "/var/lib/sorteo360/files"
+      # Cuánto se admite subir. El tamaño se cuenta al recibir el archivo, no se pregunta.
+      FileStore__MaxSizeBytes: "${FILE_MAX_SIZE_BYTES:-26214400}"
+      FileStore__MaxGalleryImagesPerEvent: "${FILE_MAX_GALLERY_IMAGES_PER_EVENT:-20}"
+    volumes:
+      - events-files:/var/lib/sorteo360/files
+      # La CA de postgres, para verificar su certificado. Solo ca.crt, nunca una llave.
+      - postgres-ca:/etc/postgresql-ca:ro
+    ports:
+      - "${EVENTS_PORT:-5170}:8080"
+    depends_on:
+      postgres-roles:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+    networks: [sorteo360-net]
+    profiles: [all, events]
+
+  # convocatorias-service: invitaciones, portal público de registro y check-in QR.
+  convocatorias-service:
+    build:
+      context: .
+      dockerfile: convocatorias-service/Dockerfile
+    image: ${REGISTRY:-sorteo360}/convocatorias-service:${TAG:-local}
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      # Infraestructura: se referencia por el NOMBRE del servicio (DNS de la red).
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=convocatorias;Username=convocatorias_app;Password=${CONVOCATORIAS_DB_PASSWORD:-localdev};SSL Mode=VerifyFull;Root Certificate=/etc/postgresql-ca/ca.crt"
+      # Authority usa el DNS interno; el issuer adicional acepta tokens pedidos
+      # desde el host (localhost:${KEYCLOAK_PORT}), cuyo iss difiere del interno.
+      Keycloak__Authority: "http://keycloak:8080/realms/sorteo360"
+      Keycloak__Audience: "convocatorias-api"
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuer: "http://localhost:${KEYCLOAK_PORT:-8082}/realms/sorteo360"
+      # Identidad propia con la que este servicio llama a otros (client credentials): es
+      # una sola, independientemente de a cuántos destinos llame. El endpoint de token
+      # sale de Keycloak__Authority, arriba.
+      ServiceAuth__ClientId: "convocatorias-service"
+      ServiceAuth__ClientSecret: ${CONVOCATORIAS_SERVICE_CLIENT_SECRET:-localdev-convocatorias-service}
+      # A quién llama: events-service para el evento que se convoca.
+      Services__Events__BaseUrl: "http://events-service:8080"
+      Services__Notifications__BaseUrl: "http://notification-service:8080"
+      Notifications__Transport: "${NOTIFICATIONS_TRANSPORT:-stub}"
+      Notifications__FromAddress: "no-reply@sorteo360.local"
+      # Origen desde el que se arman los enlaces de la invitación: el que abre el invitado
+      # en su navegador, no un nombre de la red de Compose.
+      Portal__BaseUrl: "http://localhost:${FRONTEND_PORT:-5175}"
+      # Cuánto tiempo en "sending" con filas pendientes hace falta para que una campaña salga
+      # como varada en la reconciliación (spec 07 §6.3).
+      Reconciliation__StrandedCampaignAfter: "00:15:00"
+    ports:
+      - "${CONVOCATORIAS_PORT:-5185}:8080"
+    volumes:
+      # La CA de postgres, para verificar su certificado. Solo ca.crt, nunca una llave.
+      - postgres-ca:/etc/postgresql-ca:ro
+    depends_on:
+      postgres-roles:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+    networks: [sorteo360-net]
+    profiles: [all, convocatorias]
+
+  # notification-service: puerta de salida SMTP e historial de envíos.
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    image: ${REGISTRY:-sorteo360}/notification-service:${TAG:-local}
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      # Infraestructura: se referencia por el NOMBRE del servicio (DNS de la red).
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=notifications;Username=notifications_app;Password=${NOTIFICATIONS_DB_PASSWORD:-localdev};SSL Mode=VerifyFull;Root Certificate=/etc/postgresql-ca/ca.crt"
+      # Authority usa el DNS interno; el issuer adicional acepta tokens pedidos
+      # desde el host (localhost:${KEYCLOAK_PORT}), cuyo iss difiere del interno.
+      Keycloak__Authority: "http://keycloak:8080/realms/sorteo360"
+      Keycloak__Audience: "notifications-api"
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuer: "http://localhost:${KEYCLOAK_PORT:-8082}/realms/sorteo360"
+      Smtp__Host: "mailpit"
+      Smtp__Port: "1025"
+      Smtp__RequireTls: "false"
+      Smtp__Username: "${SMTP_USERNAME:-}"
+      Smtp__Password: "${SMTP_PASSWORD:-}"
+      Smtp__AllowExternalRelay: "${SMTP_ALLOW_EXTERNAL_RELAY:-false}"
+      SendGrid__EventWebhook__PublicKey: "${SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY:-}"
+      SendGrid__EventWebhook__Enabled: "${SENDGRID_EVENT_WEBHOOK_ENABLED:-true}"
+    ports:
+      - "${NOTIFICATIONS_PORT:-5190}:8080"
+    volumes:
+      # La CA de postgres, para verificar su certificado. Solo ca.crt, nunca una llave.
+      - postgres-ca:/etc/postgresql-ca:ro
+    depends_on:
+      postgres-roles:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    networks: [sorteo360-net]
+    profiles: [all, notifications]
+
+  # --------------------------------------------------------------------------
+  # Frontend (SPA)
+  # --------------------------------------------------------------------------
+  # UI web servida por nginx (usuario no-root, puerto 8080 interno como el resto).
+  # nginx reenvía /v1 a events-service dentro de la red — salvo las rutas que son del
+  # CRM (/v1/opts, /v1/companies, /v1/contacts, /v1/me), enumeradas una por una en
+  # nginx.conf — por lo que el navegador habla siempre con un solo origen (sin CORS).
+  # Las variables VITE_* se hornean
+  # en el bundle al CONSTRUIR la imagen (ver frontend/Dockerfile), no en runtime.
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Keycloak visto desde el navegador; horneado en el bundle al construir.
+        VITE_KEYCLOAK_URL: "http://localhost:${KEYCLOAK_PORT:-8082}"
+    image: ${REGISTRY:-sorteo360}/frontend:${TAG:-local}
+    ports:
+      - "${FRONTEND_PORT:-5175}:8080"
+    depends_on:
+      events-service:
+        condition: service_healthy
+    networks: [sorteo360-net]
+    # Requiere events-service: usar el perfil "all" o "frontend,events".
+    profiles: [all, frontend]
+
+  # --- Plantilla para el próximo servicio (copiar y renombrar) -------------
+  # otro-service:
+  #   # Contexto en la raíz del repo: todo servicio referencia el chasis compartido en shared/.
+  #   build:
+  #     context: .
+  #     dockerfile: otro-service/Dockerfile
+  #   image: ${REGISTRY:-sorteo360}/otro-service:${TAG:-local}
+  #   environment:
+  #     ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+  #     ASPNETCORE_HTTP_PORTS: "8080"
+  #     ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=otro;Username=otro_app;Password=${OTRO_DB_PASSWORD:-localdev};SSL Mode=VerifyFull;Root Certificate=/etc/postgresql-ca/ca.crt"
+  #     Services__Events__BaseUrl: "http://events-service:8080"
+  #   ports:
+  #     - "${OTRO_PORT:-5180}:8080"
+  #   volumes:
+  #     - postgres-ca:/etc/postgresql-ca:ro
+  #   depends_on:
+  #     postgres-roles:
+  #       condition: service_completed_successfully
+  #   networks: [sorteo360-net]
+  #   profiles: [all, otro]
+
+networks:
+  sorteo360-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  # La CA de postgres con su llave, y el certificado y la llave del servidor. Solo
+  # lo ven postgres-certs y postgres. Borrarlo crea una CA nueva en el próximo arranque.
+  postgres-tls:
+  # Solo el ca.crt de esa CA: lo montan, de lectura, todos los clientes de postgres.
+  postgres-ca:
+  # Archivos subidos a events-service con el proveedor de sistema de archivos. Sobrevive a un
+  # redespliegue y solo lo borra un `down -v`: perderlo deja filas de stored_file apuntando a
+  # bytes que ya no están.
+  events-files:

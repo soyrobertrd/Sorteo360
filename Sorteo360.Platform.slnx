@@ -1,0 +1,22 @@
+<Solution>
+  <Project Path="shared/Sorteo360.Platform/Sorteo360.Platform.csproj" />
+  <Project Path="shared/Sorteo360.Platform.Tests.Unit/Sorteo360.Platform.Tests.Unit.csproj" />
+
+  <Project Path="events-service/Sorteo360.Events.Core/Sorteo360.Events.Core.csproj" />
+  <Project Path="events-service/Sorteo360.Events.Infrastructure/Sorteo360.Events.Infrastructure.csproj" />
+  <Project Path="events-service/Sorteo360.Events.Tests.Integration/Sorteo360.Events.Tests.Integration.csproj" />
+  <Project Path="events-service/Sorteo360.Events.Tests.Unit/Sorteo360.Events.Tests.Unit.csproj" />
+  <Project Path="events-service/Sorteo360.Events.Web/Sorteo360.Events.Web.csproj" />
+
+
+  <Project Path="convocatorias-service/Sorteo360.Convocatorias.Core/Sorteo360.Convocatorias.Core.csproj" />
+  <Project Path="convocatorias-service/Sorteo360.Convocatorias.Infrastructure/Sorteo360.Convocatorias.Infrastructure.csproj" />
+  <Project Path="convocatorias-service/Sorteo360.Convocatorias.Tests.Integration/Sorteo360.Convocatorias.Tests.Integration.csproj" />
+  <Project Path="convocatorias-service/Sorteo360.Convocatorias.Tests.Unit/Sorteo360.Convocatorias.Tests.Unit.csproj" />
+  <Project Path="convocatorias-service/Sorteo360.Convocatorias.Web/Sorteo360.Convocatorias.Web.csproj" />
+  <Project Path="notification-service/Sorteo360.Notifications.Core/Sorteo360.Notifications.Core.csproj" />
+  <Project Path="notification-service/Sorteo360.Notifications.Infrastructure/Sorteo360.Notifications.Infrastructure.csproj" />
+  <Project Path="notification-service/Sorteo360.Notifications.Tests.Integration/Sorteo360.Notifications.Tests.Integration.csproj" />
+  <Project Path="notification-service/Sorteo360.Notifications.Tests.Unit/Sorteo360.Notifications.Tests.Unit.csproj" />
+  <Project Path="notification-service/Sorteo360.Notifications.Web/Sorteo360.Notifications.Web.csproj" />
+</Solution>

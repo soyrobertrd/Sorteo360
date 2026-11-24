@@ -1,0 +1,21 @@
+meta {
+  name: 16 Get Quote Draft
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/categories/:category/quote
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcCascadeEventId}}
+  category: {{category}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq draft
+}

@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="PdfPig" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="coverlet.msbuild" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Los cuerpos aprobados de las plantillas. El test los lee del directorio de salida, así que
+         tienen que viajar con el binario. -->
+    <None Update="Templates\Golden\*.html" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sorteo360.Events.Core\Sorteo360.Events.Core.csproj" />
+    <ProjectReference Include="..\Sorteo360.Events.Infrastructure\Sorteo360.Events.Infrastructure.csproj" />
+    <ProjectReference Include="..\Sorteo360.Events.Web\Sorteo360.Events.Web.csproj" />
+  </ItemGroup>
+
+</Project>

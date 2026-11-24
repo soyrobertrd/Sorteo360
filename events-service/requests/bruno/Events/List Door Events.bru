@@ -1,0 +1,24 @@
+meta {
+  name: List Door Events
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/events/door
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  La lista de eventos de la puerta: lo que una terminal necesita para elegir el evento de
+  esta noche. Pide `check-in:read`, que el compuesto `event_staff` trae.
+
+  Devuelve un arreglo, sin sobre ni paginación, de `{ id, name, startDate, endDate, cities[] }`
+  con cada evento no cancelado que cumple `startDate − 1 ≤ hoy ≤ endDate + 1`, hoy en UTC.
+  Públicos y privados por igual, ordenados por `startDate` y luego por `name`.
+}

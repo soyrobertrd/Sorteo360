@@ -1,0 +1,42 @@
+meta {
+  name: 03 Update City
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/cities/:cityId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{gcEventId}}
+  cityId: {{gcCityId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Sevilla",
+    "country": "España",
+    "timeZone": "Europe/Madrid",
+    "date": "2026-09-05",
+    "displayOrder": 1
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.name: eq Sevilla
+  res.body.date: eq 2026-09-05
+}
+
+docs {
+  Reemplazo completo de los campos mutables: Madrid pasa a ser Sevilla con
+  fecha. La respuesta trae la ciudad actualizada con la misma forma que el
+  detalle del evento.
+}

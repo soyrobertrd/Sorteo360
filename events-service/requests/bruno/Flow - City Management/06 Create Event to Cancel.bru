@@ -1,0 +1,42 @@
+meta {
+  name: 06 Create Event to Cancel
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "type": "Roadshow",
+    "name": "Roadshow Terminal (Bruno)",
+    "startDate": "2026-11-10",
+    "endDate": "2026-11-12",
+    "optOfficeId": "{{optOfficeId}}",
+    "city": "Miami",
+    "country": "Estados Unidos"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setVar("gcCancelEventId", res.getBody());
+    console.log("gcCancelEventId =", bru.getVar("gcCancelEventId"));
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Escenario B: evento que se cancela en el paso 08 para probar el guard de estado terminal.
+}

@@ -1,0 +1,50 @@
+meta {
+  name: Create Prizes
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/prizes
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "roundId": "{{roundId}}",
+    "name": "Bolsa de tela",
+    "description": "Con el logo del evento",
+    "value": "RD$500",
+    "sponsorCompanyId": "{{companyId}}",
+    "quantity": 5
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+    bru.setVar("prizeId", res.getBody()[0].id);
+    console.log("prizeId =", bru.getVar("prizeId"));
+  }
+}
+
+docs {
+  Crea `quantity` premios idénticos (de 1 a 50) en la ronda: cinco bolsas son cinco premios con
+  cinco ganadores. **201** con la lista de premios creados; el id del primero queda en `prizeId`.
+  `value` es texto que se imprime tal cual, no un monto.
+
+  `sponsorCompanyId` (y `sponsorContactId`, solo con la empresa) son opcionales y se validan en vivo
+  contra el CRM: **409 COMPANY_NOT_AVAILABLE**, **409 COMPANY_CONTACT_NOT_AVAILABLE**,
+  **503 CRM_UNAVAILABLE**.
+
+  **400** si `quantity` falta o está fuera de rango, **404 ROUND_NOT_FOUND** si la ronda no es de
+  este sorteo, más los mismos rechazos de estado que `Create Round`.
+}

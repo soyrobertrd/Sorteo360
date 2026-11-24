@@ -1,0 +1,28 @@
+# ============================================================================
+# Fin de linea LF en todo el repo, en cualquier sistema operativo.
+#
+# Sin esto, un clone en Windows con core.autocrlf=true baja los archivos con
+# CRLF, y hay cosas que se rompen sin decir por que:
+#   - los .sh (scripts/, .githooks/): Git Bash falla en el shebang, y en Linux
+#     el interprete no existe con el \r pegado al final;
+#   - infra/postgres/init.sh, que se monta y corre DENTRO del contenedor de
+#     postgres, siempre Linux;
+#   - los Dockerfile y los compose, que se leen en el mismo lugar.
+#
+# `text=auto` deja que git detecte que es texto y que es binario; `eol=lf` fija
+# el fin de linea en el working tree, no solo en el repositorio. Hoy no hay un
+# solo archivo con CRLF, asi que esto congela el estado actual en vez de
+# cambiarlo.
+# ============================================================================
+
+* text=auto eol=lf
+
+# Binarios frecuentes, explicitos para que la deteccion no tenga que adivinar.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.woff  binary
+*.woff2 binary

@@ -1,0 +1,34 @@
+meta {
+  name: Reset Service Supplier Evaluations
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/service-suppliers/:id/evaluations/reset
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: {{serviceSupplierId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "reason": "La empresa cambió de gerencia en septiembre."
+  }
+}
+
+docs {
+  Reinicia las evaluaciones del proveedor: las anteriores siguen en la lista con
+  `beforeReset: true` y dejan de contar en `averageScore` y `evaluationCount`. **200** con el
+  reinicio (motivo, quién y cuándo), **404** si el proveedor no existe. Exige
+  `service-suppliers:delete`.
+
+  Un `reason` vacío o en blanco es **400** `SUPPLIER_EVALUATION_RESET_REASON_REQUIRED`.
+}

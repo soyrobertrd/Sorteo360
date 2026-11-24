@@ -1,0 +1,22 @@
+meta {
+  name: Close Event
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:id/close
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: {{eventId}}
+}
+
+docs {
+  Cierra el evento: calcula el `totalCost` a partir de las cotizaciones y pasa el estado a
+  `closed`. Solo aplica desde `in_progress` (primero hay que iniciarlo con `/start`).
+  **200** con el detalle actualizado, **404** si no existe, **409** si el evento no está en
+  `in_progress` o si el total no puede calcularse. Sin body.
+}

@@ -1,0 +1,40 @@
+meta {
+  name: 04 Set Recommended
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/categories/:category/quote/candidates/:candidateId/proposals/:proposalId/recommended
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  category: {{category}}
+  candidateId: {{candidateId}}
+  proposalId: {{proposalId}}
+}
+
+script:pre-request {
+  // Recomendar es sobre una propuesta, y el alta del candidato solo devuelve el id del
+  // candidato: la propuesta que nació con él se lee de la cotización, igual que hace la
+  // pantalla. El token ya lo dejó cacheado el pre-request de la colección.
+  const axios = require("axios");
+  const quoteUrl =
+    `${bru.getEnvVar("baseUrl")}/v${bru.getEnvVar("apiVersion")}` +
+    `/events/${bru.getVar("eventId")}/categories/${bru.getEnvVar("category")}/quote`;
+
+  const quote = await axios.get(quoteUrl, {
+    headers: { Authorization: "Bearer " + bru.getVar("token") },
+  });
+
+  const candidate = quote.data.candidates.find(c => c.id === bru.getVar("candidateId"));
+  bru.setVar("proposalId", candidate.proposals[0].id);
+  console.log("proposalId =", bru.getVar("proposalId"));
+}
+
+assert {
+  res.status: eq 204
+}

@@ -1,0 +1,35 @@
+meta {
+  name: 05 Update City without Name - 400
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/cities/:cityId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{gcEventId}}
+  cityId: {{gcCityId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "country": "España",
+    "timeZone": "Europe/Madrid"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+docs {
+  `name`, `country` y `timeZone` son obligatorios; sin nombre el validator rechaza con 400.
+}

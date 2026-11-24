@@ -1,0 +1,56 @@
+meta {
+  name: Get Token
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  grant_type: password
+  client_id: {{authClientId}}
+  username: {{username}}
+  password: {{password}}
+  scope: openid
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const body = res.getBody();
+    // Vars de runtime (no se escriben a disco).
+    bru.setVar("token", body.access_token);
+    bru.setVar("tokenExp", String(Date.now() + (body.expires_in - 30) * 1000));
+    // Muestra usuario y roles del claim plano `roles` para verificar el perfil.
+    try {
+      const payload = JSON.parse(
+        Buffer.from(body.access_token.split(".")[1], "base64").toString("utf8"),
+      );
+      console.log(
+        "usuario =", payload.preferred_username,
+        "| roles =", (payload.roles || []).join(", "),
+      );
+    } catch (e) {
+      console.log("No se pudo decodificar el token:", e.message);
+    }
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Obtiene un token de Keycloak con el grant `password` (Resource Owner Password Credentials)
+  del client público `pgti360-app`, usando `username` / `password` del environment.
+
+  Guarda el `access_token` en la env var `token` y su expiración en `tokenExp`, e imprime en
+  la consola de Bruno el usuario y sus roles. `auth: none` porque el endpoint de token no
+  lleva bearer.
+
+  El servicio valida `aud: events-api` y lee los roles del claim plano `roles`; el mapper
+  del realm ya incluye ambos en el token de `pgti360-app`.
+}

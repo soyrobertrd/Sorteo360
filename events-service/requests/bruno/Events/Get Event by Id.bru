@@ -1,0 +1,20 @@
+meta {
+  name: Get Event by Id
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: {{eventId}}
+}
+
+docs {
+  Detalle del evento + sus ciudades de roadshow. **200** con el detalle, **404** si no existe.
+  `:id` toma `{{eventId}}` (lo setea el flujo E2E; o cargalo en el environment).
+}

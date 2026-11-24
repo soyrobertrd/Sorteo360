@@ -1,0 +1,19 @@
+meta {
+  name: Auth
+  seq: 1
+}
+
+docs {
+  Autenticación contra Keycloak (realm `pgti360`).
+
+  La colección se autentica **sola** (ver el `script:pre-request` a nivel colección): antes
+  de cada request obtiene/renueva un token y lo cachea en las env vars `token` / `tokenExp`.
+  Normalmente no hace falta correr nada de acá.
+
+  Usá **`Get Token`** cuando quieras:
+  - Ver el token y los roles del usuario actual (se imprimen en la consola de Bruno).
+  - Forzar una renovación tras cambiar `username` en el environment (p. ej. probar `gestor`
+    vs `direccion` para ver un 403): renueva el token de runtime con el nuevo usuario.
+
+  `token` / `tokenExp` se guardan como vars de runtime (`bru.setVar`), no en el environment.
+}

@@ -1,0 +1,23 @@
+meta {
+  name: 03 Close in Planning - 409
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/close
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcEventId}}
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  El cierre solo aplica desde `in_progress`: un evento en `planning` nunca inició.
+}

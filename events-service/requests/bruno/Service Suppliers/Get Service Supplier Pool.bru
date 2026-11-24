@@ -1,0 +1,36 @@
+meta {
+  name: Get Service Supplier Pool
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/service-suppliers/pool?category=Venue
+  body: none
+  auth: inherit
+}
+
+params:query {
+  category: Venue
+  ~country: República Dominicana
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Pool de proveedores por categoría (para elegir candidatos de una cotización).
+  **`category` es OBLIGATORIO** — si falta devuelve **400**. `country` es opcional y angosta
+  el pool a una plaza; omitirlo devuelve la categoría entera.
+
+  Cada fila trae `company` resuelta contra el CRM y ordenada por nombre, igual que el listado,
+  con la misma cabecera `X-Crm-Directory-Status` y la misma regla: un proveedor cuya empresa no
+  resuelve sale igual, con el nombre en `null` y al final (ADR-0015).
+
+  Cada fila trae `auditoriumCapacity` y `cocktailCapacity` (aforo máximo del local), en
+  `null` si el proveedor no es `Venue` o no lo tiene declarado.
+
+  Es la única lectura que filtra por `isHireable`: un proveedor marcado como "no volver a
+  contratar" no sale acá, y sigue saliendo en el listado, en su ficha y en el historial.
+}

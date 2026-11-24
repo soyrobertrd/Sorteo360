@@ -1,0 +1,34 @@
+meta {
+  name: Upload My Passport Scan
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{crmBaseUrl}}/v{{apiVersion}}/me/collaborator/passports/{{passportId}}/scan
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  file: @file(Collaborators/pasaporte.pdf)
+}
+
+docs {
+  Sube o reemplaza el escaneo de un pasaporte propio, en el campo `file`;
+  `passportId` lo deja "Update My Collaborator Documents". La visa va por
+  `visas/{documentId}/scan`. La cédula no se sube por aquí, porque la trae Recursos
+  Humanos, ni el carnet, que lo entrega el MITUR. PDF, PNG o JPEG de hasta 5 MB, como
+  la subida del personal: **400 FILE_INFECTED** si el antivirus encuentra algo,
+  **503 VIRUS_SCAN_UNAVAILABLE** sin veredicto, y ninguno guarda nada. **404** si el
+  pasaporte no es tuyo o se quitó. Exige `own-record:write`.
+  `Collaborators/pasaporte.pdf` sirve para probar.
+
+  Desde la terminal:
+
+  ```
+  curl -X PUT "$CRM_URL/v1/me/collaborator/passports/$PASSPORT_ID/scan" \
+    -H "Authorization: Bearer $TOKEN" \
+    -F "file=@pasaporte.pdf;type=application/pdf"
+  ```
+}

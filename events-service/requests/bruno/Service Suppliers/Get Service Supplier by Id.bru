@@ -1,0 +1,28 @@
+meta {
+  name: Get Service Supplier by Id
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/service-suppliers/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: {{serviceSupplierId}}
+}
+
+docs {
+  Detalle del proveedor + sus fotos. **200** con el detalle, **404** si no existe.
+  `:id` toma `{{serviceSupplierId}}`.
+
+  En un `Venue` devuelve además `auditoriumCapacity` y `cocktailCapacity`, con `null`
+  en el aforo que no se haya registrado.
+
+  `company` trae el id que guarda este servicio y la identidad que resuelve crm-service al
+  leer: `name`, `country`, `city` e `isActive`. Los cuatro pueden venir en `null` sin que la
+  ficha esté incompleta; la cabecera `X-Crm-Directory-Status` (`ok` / `stale` / `unavailable`)
+  dice por qué. `company.isActive` es la relación comercial del CRM y no es `isHireable`.
+}

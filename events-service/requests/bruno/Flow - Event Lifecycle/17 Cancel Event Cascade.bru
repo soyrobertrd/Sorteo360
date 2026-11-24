@@ -1,0 +1,35 @@
+meta {
+  name: 17 Cancel Event Cascade
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/cancel
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcCascadeEventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "reason": "Cancelación con cotización abierta (flujo Bruno)."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq cancelled
+}
+
+docs {
+  La cancelación soft-cancela en cascada las cotizaciones no terminales del evento,
+  en la misma transacción.
+}

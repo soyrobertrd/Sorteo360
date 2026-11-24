@@ -1,0 +1,43 @@
+meta {
+  name: Reissue Raffle Record
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/reissue
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "notaryName": "Ana Pérez",
+    "notaryIdentityDocument": "001-0000001-1",
+    "witnessOneName": "Luis Gómez",
+    "witnessOneIdentityDocument": "001-0000002-2",
+    "witnessTwoName": "María Díaz",
+    "witnessTwoIdentityDocument": "001-0000030-3"
+  }
+}
+
+docs {
+  Corrige las seis autoridades de un sorteo completado y reemite el acta: guarda las autoridades
+  recortadas y genera, guarda y enlaza la versión siguiente, que dice a cuál reemplaza y cuándo se
+  generó esa. Las versiones anteriores no se borran. Cada llamada escribe una versión nueva, aunque
+  los datos no cambien. No envía correo. **200** con el sorteo, igual que su lectura, con la nueva
+  versión primera en `notarialRecords`.
+
+  **400** si falta alguna de las seis, está en blanco o supera su tope (200 los nombres, 100 los
+  documentos), **404 EVENT_NOT_FOUND** o **RAFFLE_NOT_FOUND**, **409 RAFFLE_NOT_COMPLETED** y **503 FILE_STORE_UNAVAILABLE**, en ese orden; un
+  rechazo no escribe nada y la versión vigente sigue siéndolo. Un evento cerrado o cancelado no lo
+  impide. Exige `raffles:draw`.
+}

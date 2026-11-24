@@ -1,0 +1,34 @@
+meta {
+  name: Cancel Event
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:id/cancel
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: {{eventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "reason": "El cliente pospuso la gira."
+  }
+}
+
+docs {
+  Cancela el evento desde `planning` o `in_progress`. La `razon` es obligatoria y queda
+  persistida (`cancellationReason` en el detalle). En cascada, las cotizaciones no terminales
+  (`draft` / `submitted`) del evento se cierran con soft-delete y dejan de ser visibles.
+
+  **200** con el detalle actualizado, **400** si falta la razón, **404** si no existe,
+  **409** si ya estaba cerrado o cancelado.
+}

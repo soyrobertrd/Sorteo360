@@ -1,0 +1,34 @@
+meta {
+  name: Complete Raffle
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/complete
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+docs {
+  Completa el sorteo, sin cuerpo: genera el acta en PDF, la guarda como archivo y la enlaza como
+  versión 1, todo o nada. Los premios sin sortear no lo impiden. **200** con el sorteo, igual que
+  su lectura, ya en `completed` y con `completedAt`, `completedById` y el acta en
+  `notarialRecords`. El PDF se baja de `GET /v1/files/{storedFileId}/content`.
+
+  Después de confirmar le manda un correo a cada ganador vivo (`events.prize.won`), a la dirección
+  con que se lo inscribió, en el idioma del evento o en español si no hay copia. Cada sorteo de
+  premio trae `winnerNotificationStatus` (`sent`, `no_recipient`, `failed`; nulo si no se intentó,
+  como en un sorteo anulado) y `winnerNotificationId`, el lote de
+  `GET /v1/notifications/batches/{id}`. Un correo que falla nunca hace fallar el cierre, y nunca se
+  vuelve a mandar, tampoco al reemitir.
+
+  **409 RAFFLE_NOT_IN_PROGRESS** en `draft`, **409 RAFFLE_COMPLETED**,
+  **409 RAFFLE_AUTHORITIES_REQUIRED**, **409 RAFFLE_PICKUP_INSTRUCTIONS_REQUIRED** y
+  **503 FILE_STORE_UNAVAILABLE**, en ese orden; un rechazo no escribe nada y el sorteo sigue en
+  curso. Un evento cerrado o cancelado no lo impide. Exige `raffles:draw`.
+}

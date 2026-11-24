@@ -1,0 +1,27 @@
+# ============================================================================
+# Override para MODO SALÓN OFFLINE (laptop o mini-PC sin acceso a internet).
+#
+# Se usa sobre `docker-compose.prod.yml`:
+#   docker compose -f docker-compose.prod.yml -f docker-compose.salon.yml --env-file .env.prod up -d
+#
+# Características:
+#   - Caddy usa `infra/caddy/Caddyfile.salon` con `tls internal` (sin Let's Encrypt).
+#   - Desactiva el envío SMTP externo (`NOTIFICATIONS_TRANSPORT=stub`).
+#   - Pensado para correr con `COMPOSE_PROFILES=events,frontend` tras pre-construir
+#     las imágenes antes del evento (con internet).
+# ============================================================================
+services:
+  caddy:
+    volumes:
+      - ./infra/caddy/Caddyfile.salon:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  convocatorias-service:
+    environment:
+      NOTIFICATIONS_TRANSPORT: "stub"
+
+  notification-service:
+    environment:
+      Smtp__AllowExternalRelay: "false"
+

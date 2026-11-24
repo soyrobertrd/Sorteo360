@@ -1,0 +1,35 @@
+meta {
+  name: Get Service Supplier History
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/service-suppliers/history?category=Venue
+  body: none
+  auth: inherit
+}
+
+params:query {
+  category: Venue
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Historial de uso/contratación de proveedores de una categoría (montos estimados/finales,
+  recomendados, fechas de envío). **`category` es OBLIGATORIO** (400 si falta).
+
+  Cada fila trae `company` —id, nombre, país, ciudad y `isActive`— resuelto contra el directorio del
+  CRM al leer, con la misma forma que la ficha y el listado (ADR-0015). El nombre en `null` es una
+  empresa que no resolvió, y `X-Crm-Directory-Status` dice por qué.
+
+  A diferencia del listado, acá no hay filtros ni orden por nombre: el histórico compara montos, y
+  una fila que un filtro descarte es un monto pagado que sale de la comparación. El orden es el
+  cronológico, y la fila sin identidad se queda en su sitio.
+
+  Cada fila trae también `auditoriumCapacity` y `cocktailCapacity` de la ficha **actual** del
+  proveedor, así que se repiten en todas sus filas; `null` si no es `Venue` o no está declarado.
+}

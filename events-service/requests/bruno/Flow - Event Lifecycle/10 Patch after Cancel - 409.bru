@@ -1,0 +1,40 @@
+meta {
+  name: 10 Patch after Cancel - 409
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{lcEventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "No debería aplicar",
+    "startDate": "2026-10-01",
+    "endDate": "2026-10-07",
+    "optOfficeId": "{{optOfficeId}}",
+    "language": "es"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  En estados terminales los campos de planificación ya no se editan.
+
+  El `language` va aunque no se espere que se aplique: es obligatorio en este PATCH, y sin él
+  la respuesta sería **400** `EVENT_LANGUAGE_REQUIRED` en vez del 409 que este paso prueba.
+}

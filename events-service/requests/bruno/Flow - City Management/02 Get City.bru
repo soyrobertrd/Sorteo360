@@ -1,0 +1,31 @@
+meta {
+  name: 02 Get City
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{gcEventId}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.setVar("gcCityId", res.getBody().cities[0].id);
+    console.log("gcCityId =", bru.getVar("gcCityId"));
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.cities.length: eq 1
+}
+
+docs {
+  Un evento tiene exactamente una ciudad, la que recibió al crearse. Captura su id para corregirla.
+}

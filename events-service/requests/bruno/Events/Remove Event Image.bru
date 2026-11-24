@@ -1,0 +1,30 @@
+meta {
+  name: Remove Event Image
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/images/:imageId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+  imageId: {{eventImageId}}
+}
+
+docs {
+  Quita una imagen del evento, sea la portada o una foto de la galería. **204** si la quitó,
+  **404** con código `EVENT_IMAGE_NOT_FOUND` si esa imagen no está en ese evento (no existe, ya
+  se quitó, o es de otro evento).
+
+  La baja es lógica y alcanza solo al enlace: el archivo se queda donde está y sus bytes se
+  siguen pudiendo pedir a `/v1/files/{storedFileId}/content`.
+
+  Quitar la portada deja al evento sin ninguna hasta que se suba otra; **List Events** devuelve
+  `cover` en `null` mientras tanto.
+
+  `:imageId` toma `{{eventImageId}}`, que sale del campo `id` de **List Event Images**.
+}
