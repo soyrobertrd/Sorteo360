@@ -49,7 +49,7 @@ public sealed class RosterAttendanceSource : IAttendanceSource
         var (firstName, lastName) = SplitFullName(participant.FullName);
 
         return new Attendee(
-            EmailNormalized: participant.EmailNormalized,
+            IdentityKey: participant.IdentityKey,
             FirstName: firstName,
             LastName: lastName,
             Company: participant.RuleGroup,

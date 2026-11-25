@@ -27,6 +27,7 @@ public sealed class RaffleEndpoints : IEndpoint
         services.AddScoped<IValidator<SetCertificateSignersRequest>, Validators.SetCertificateSignersRequestValidator>();
         services.AddScoped<IValidator<SetAttendeeOverrideRequest>, Validators.SetAttendeeOverrideRequestValidator>();
         services.AddScoped<IValidator<RemoveAttendeeOverrideRequest>, Validators.RemoveAttendeeOverrideRequestValidator>();
+        services.AddScoped<IValidator<BulkExcludeAttendeesRequest>, Validators.BulkExcludeAttendeesRequestValidator>();
     }
 
     public static void DefineEndpoints(IEndpointRouteBuilder app)
@@ -148,6 +149,20 @@ public sealed class RaffleEndpoints : IEndpoint
             .RequireAuthorization(AuthorizationPolicies.RafflesWrite)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+
+        group.MapPost("attendees/overrides/bulk-exclude", BulkExcludeAttendees)
+            .MapToApiVersion(1)
+            .WithName("BulkExcludeRaffleAttendees")
+            .WithSummary(RaffleEndpointsDescriptions.BulkExcludeSummary)
+            .WithDescription(RaffleEndpointsDescriptions.BulkExcludeDescription)
+            .WithValidation<BulkExcludeAttendeesRequest>()
+            .RequireAuthorization(AuthorizationPolicies.RafflesWrite)
+            .Produces<BulkExcludeAttendeesResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
@@ -409,7 +424,7 @@ public sealed class RaffleEndpoints : IEndpoint
     {
         var dto = new SetAttendeeOverrideDto(
             EventId: eventId,
-            Email: request.Email!,
+            IdentityKey: request.IdentityKey ?? request.Email!,
             Decision: request.Decision!,
             Note: string.IsNullOrWhiteSpace(request.Note) ? null : request.Note,
             DecidedById: currentUser.Id);
@@ -422,13 +437,34 @@ public sealed class RaffleEndpoints : IEndpoint
         return Results.NoContent();
     }
 
+    private static async Task<IResult> BulkExcludeAttendees(
+        [FromRoute] Guid eventId,
+        [FromBody] BulkExcludeAttendeesRequest request,
+        [FromServices] IRaffleService service,
+        [FromServices] ICurrentUser currentUser,
+        CancellationToken cancellationToken)
+    {
+        var dto = new BulkExcludeAttendeesDto(
+            EventId: eventId,
+            SourceEventId: request.SourceEventId,
+            Identifiers: request.Identifiers,
+            Note: string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
+            DecidedById: currentUser.Id);
+
+        var result = await service.BulkExcludeAsync(dto, cancellationToken);
+
+        return result.IsFailure
+            ? result.Error.ToProblem()
+            : Results.Ok(BulkExcludeAttendeesResponse.From(result.Value));
+    }
+
     private static async Task<IResult> RemoveAttendeeOverride(
         [FromRoute] Guid eventId,
         [FromBody] RemoveAttendeeOverrideRequest request,
         [FromServices] IRaffleService service,
         CancellationToken cancellationToken)
     {
-        var result = await service.RemoveOverrideAsync(eventId, request.Email!, cancellationToken);
+        var result = await service.RemoveOverrideAsync(eventId, request.IdentityKey ?? request.Email!, cancellationToken);
 
         if (result.IsFailure)
             return result.Error.ToProblem();

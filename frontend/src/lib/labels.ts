@@ -468,6 +468,10 @@ export const apiErrorCodeLabel: Record<ApiErrorCode, string> = {
   RAFFLE_ALREADY_EXISTS: 'El evento ya tiene un sorteo.',
   RAFFLE_NOT_FOUND: 'El evento no tiene sorteo.',
   RAFFLE_NOT_DRAFT: 'El sorteo ya arrancó y esta acción solo vale para un borrador.',
+  RAFFLE_BULK_EXCLUDE_SOURCE_REQUIRED:
+    'Indique una sola fuente: el sorteo de otro evento o una lista de correos e IDs.',
+  RAFFLE_BULK_EXCLUDE_TOO_MANY: 'La exclusión en lote admite como máximo 5000 identificadores.',
+  RAFFLE_BULK_EXCLUDE_SAME_EVENT: 'El sorteo de origen tiene que ser de otro evento.',
   RAFFLE_DISPLAY_FIELDS_INVALID: 'Elige una opción válida para cada dato que se muestra.',
   RAFFLE_NOT_IN_PROGRESS: 'El sorteo no está en curso.',
   RAFFLE_ATTENDEE_NOT_VOIDED: 'Esa persona no tiene un premio anulado: ya puede ganar.',

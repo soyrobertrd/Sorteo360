@@ -55,8 +55,8 @@ internal sealed class PrizeDrawConfiguration : IEntityTypeConfiguration<PrizeDra
         builder.Property(d => d.WinnerCompany)
             .HasColumnName("winner_company");
 
-        builder.Property(d => d.WinnerEmail)
-            .HasColumnName("winner_email")
+        builder.Property(d => d.WinnerIdentityKey)
+            .HasColumnName("winner_identity_key")
             .IsRequired();
 
         builder.Property(d => d.DrawnAt)

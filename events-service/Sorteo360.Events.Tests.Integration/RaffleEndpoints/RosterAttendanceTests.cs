@@ -110,7 +110,7 @@ public sealed class RosterAttendanceTests : IClassFixture<EventsApiDbFactory>
         var draw = await _api.DrawAsync(eventId, prize);
 
         draw.StatusCode.ShouldBe(HttpStatusCode.OK, await draw.Content.ReadAsStringAsync());
-        var winner = (await _api.GetStoredDrawsAsync(eventId)).ShouldHaveSingleItem().WinnerEmail;
+        var winner = (await _api.GetStoredDrawsAsync(eventId)).ShouldHaveSingleItem().WinnerIdentityKey;
         var colleague = winner == "ana@banreservas.example" ? "beto@banreservas.example" : "ana@banreservas.example";
         (await ReasonsAsync(eventId)).ShouldBe(new SortedDictionary<string, string?>(StringComparer.Ordinal)
         {
@@ -118,6 +118,44 @@ public sealed class RosterAttendanceTests : IClassFixture<EventsApiDbFactory>
             [colleague] = "same_department",
             ["carla@banreservas.example"] = "not_checked_in",
         });
+    }
+
+    /// <summary>
+    /// Sin correos inventados: quien trae solo su ID entra al padrón y al bombo con la clave
+    /// <c>id:…</c>, puede ganar y sigue sin correo; la fila sin correo ni ID se rechaza e informa.
+    /// </summary>
+    [Fact]
+    public async Task Import_LoadsIdOnlyAndEmailOnly_AndRejectsTheRowWithNeither()
+    {
+        var eventId = await _api.CreateEventWithRaffleAsync();
+
+        var response = await _client.PostAsJsonAsync(
+            $"{RaffleTestApi.RaffleUrl(eventId)}/participants/import",
+            new ImportRaffleParticipantsHttpRequest(
+                [
+                    new(FullName: "Pedro Solo Id", EmployeeCode: "E-55", CheckedIn: true),
+                    new(FullName: "Rosa Solo Correo", Email: "rosa@banreservas.example", CheckedIn: false),
+                    new(FullName: "Nadie Sin Nada", CheckedIn: true),
+                ],
+                ReplaceExisting: true,
+                Source: "excel"));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        var body = (await response.Content.ReadFromJsonAsync<ImportRaffleParticipantsHttpResponse>())!;
+        body.Imported.ShouldBe(2);
+        body.Rejected.ShouldHaveSingleItem().ShouldBe(
+            new Sorteo360.Events.Core.DTOs.RaffleParticipantImportRejection(3, "missing_email_and_id"));
+        var pedro = body.Participants.Single(p => p.EmployeeCode == "E-55");
+        pedro.Email.ShouldBeNull();
+        pedro.IdentityKey.ShouldBe("id:e-55");
+
+        var prize = (await _api.CreatePrizesAsync(eventId, await _api.CreateRoundAsync(eventId)))[0].Id;
+        (await _api.StartAsync(eventId)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        var draw = await _api.DrawAsync(eventId, prize);
+
+        draw.StatusCode.ShouldBe(HttpStatusCode.OK, await draw.Content.ReadAsStringAsync());
+        (await _api.GetStoredDrawsAsync(eventId)).ShouldHaveSingleItem().WinnerIdentityKey.ShouldBe("id:e-55");
+        (await _api.GetAttendeesAsync(eventId)).Attendees.ShouldNotBeNull().ShouldHaveSingleItem().Email.ShouldBeNull();
     }
 
     private static RaffleParticipantInputDto Person(string email, bool checkedIn, string department = "Operaciones") =>
@@ -134,5 +172,5 @@ public sealed class RosterAttendanceTests : IClassFixture<EventsApiDbFactory>
     /// <summary>Ordenado por correo: el padrón no promete orden y la comparación sí lo mira.</summary>
     private async Task<SortedDictionary<string, string?>> ReasonsAsync(Guid eventId) =>
         new((await _client.GetFromJsonAsync<List<RaffleParticipantDto>>($"{RaffleTestApi.RaffleUrl(eventId)}/participants"))!
-            .ToDictionary(p => p.Email, p => p.ExclusionReason), StringComparer.Ordinal);
+            .ToDictionary(p => p.IdentityKey, p => p.ExclusionReason), StringComparer.Ordinal);
 }

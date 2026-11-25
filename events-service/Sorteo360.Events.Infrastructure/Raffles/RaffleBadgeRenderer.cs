@@ -105,10 +105,9 @@ public sealed class RaffleBadgeRenderer : IRaffleBadgeRenderer
         if (!string.IsNullOrWhiteSpace(participant.Department))
             detailParts.Add(participant.Department);
 
-        // El correo interno de quien llegó sin correo no se imprime en el gafete.
+        // Quien entró solo con su ID no tiene correo que imprimir.
         var orgText = detailParts.Count > 0 ? string.Join(" · ", detailParts)
-            : RaffleParticipant.IsSyntheticEmail(participant.EmailNormalized) ? string.Empty
-            : participant.EmailNormalized;
+            : participant.Email ?? string.Empty;
         var org = cell.AddParagraph(orgText);
         org.Format.Alignment = ParagraphAlignment.Center;
         org.Format.Font.Size = 8;

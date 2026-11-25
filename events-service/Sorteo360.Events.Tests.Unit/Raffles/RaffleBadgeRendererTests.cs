@@ -29,7 +29,7 @@ public sealed class RaffleBadgeRendererTests
             id: Guid.NewGuid(),
             eventId: Guid.NewGuid(),
             fullName: "Carlos Rodríguez",
-            emailNormalized: "carlos@empresa.do",
+            email: "carlos@empresa.do",
             company: "Empresa Navideña",
             department: "Tecnología",
             employeeCode: "EMP-101",

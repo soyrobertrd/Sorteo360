@@ -180,6 +180,13 @@ public interface IRaffleService
     Task<UnitResult<BaseError>> RemoveOverrideAsync(Guid eventId, string email, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Excluye de una vez a los ganadores vivos del sorteo de otro evento de la cuenta, o a una lista
+    /// de correos e IDs (exclusión en lote). Solo en borrador. Lee la puerta una vez; quien no está
+    /// se informa y no falla. Todo lo que escribe va en una transacción.
+    /// </summary>
+    Task<Result<BulkExcludeOutcome, BaseError>> BulkExcludeAsync(BulkExcludeAttendeesDto dto, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Sortea el premio: bajo el bloqueo del sorteo calcula su bombo, elige a uno con
     /// <c>RandomNumberGenerator</c> y escribe el sorteo con su código de retiro (spec 02 §2). Devuelve
     /// el premio entero, con su estado y sus sorteos. Cualquiera sea el estado del evento.

@@ -87,7 +87,7 @@ public sealed class RaffleWinnerNotifierTests
     [Fact]
     public async Task NotifyWonAsync_ReturnsNoRecipient_WhenTheDrawHasNoEmail()
     {
-        var outcome = await NotifyAsync(Event(AllowedLanguage.Espanol), Draw() with { WinnerEmail = " " });
+        var outcome = await NotifyAsync(Event(AllowedLanguage.Espanol), Draw() with { WinnerIdentityKey = " " });
 
         outcome.ShouldBe(QuoteNotificationOutcome.NoRecipient());
         await _client.DidNotReceiveWithAnyArgs().SendAsync(default!, default);
@@ -269,7 +269,7 @@ public sealed class RaffleWinnerNotifierTests
         WinnerAttendeeId: Guid.NewGuid(),
         WinnerName: "María Rodríguez",
         WinnerCompany: "Viajes Caribe",
-        WinnerEmail: "maria@example.com",
+        WinnerIdentityKey: "maria@example.com",
         DrawnAt: DateTimeOffset.UtcNow,
         DrawnById: Guid.NewGuid(),
         EligiblePoolSize: 12,

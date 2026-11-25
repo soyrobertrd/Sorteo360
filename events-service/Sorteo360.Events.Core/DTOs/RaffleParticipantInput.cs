@@ -24,5 +24,15 @@ public sealed record RaffleParticipantImportResult(
     int Imported,
     int Updated,
     int Total,
-    IReadOnlyList<RaffleParticipant> Participants);
+    IReadOnlyList<RaffleParticipant> Participants,
+    IReadOnlyList<RaffleParticipantImportRejection>? Rejected = null);
+
+/// <summary>
+/// Una fila que no se cargó, con su número (desde 1, en el orden del lote) y el motivo de máquina.
+/// </summary>
+public sealed record RaffleParticipantImportRejection(int Row, string Reason)
+{
+    /// <summary>La fila no trae correo ni ID: no hay cómo reconocer a la persona.</summary>
+    public const string MissingEmailAndId = "missing_email_and_id";
+}
 

@@ -50,7 +50,7 @@ public sealed class CachedAttendanceTests
         await _source.Received(1).GetCheckedInAsync(EventId, Arg.Any<CancellationToken>());
         second.Status.ShouldBe(AttendanceStatus.Ok);
         second.FetchedAt.ShouldBe(first.FetchedAt);
-        second.Attendees.ShouldNotBeNull().ShouldHaveSingleItem().EmailNormalized.ShouldBe("ana@agencia.com");
+        second.Attendees.ShouldNotBeNull().ShouldHaveSingleItem().IdentityKey.ShouldBe("ana@agencia.com");
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public sealed class CachedAttendanceTests
 
         stale.Status.ShouldBe(AttendanceStatus.Stale);
         stale.FetchedAt.ShouldBe(first.FetchedAt);
-        stale.Attendees.ShouldNotBeNull().ShouldHaveSingleItem().EmailNormalized.ShouldBe("ana@agencia.com");
+        stale.Attendees.ShouldNotBeNull().ShouldHaveSingleItem().IdentityKey.ShouldBe("ana@agencia.com");
     }
 
     [Fact]
@@ -124,8 +124,8 @@ public sealed class CachedAttendanceTests
         var first = await sut.GetAsync(EventId, CancellationToken.None);
         var other = await sut.GetAsync(otherEvent, CancellationToken.None);
 
-        first.Attendees.ShouldNotBeNull().ShouldHaveSingleItem().EmailNormalized.ShouldBe("ana@agencia.com");
-        other.Attendees.ShouldNotBeNull().ShouldHaveSingleItem().EmailNormalized.ShouldBe("luis@agencia.com");
+        first.Attendees.ShouldNotBeNull().ShouldHaveSingleItem().IdentityKey.ShouldBe("ana@agencia.com");
+        other.Attendees.ShouldNotBeNull().ShouldHaveSingleItem().IdentityKey.ShouldBe("luis@agencia.com");
     }
 
     private void SourceReturns(params Attendee[] attendees) =>

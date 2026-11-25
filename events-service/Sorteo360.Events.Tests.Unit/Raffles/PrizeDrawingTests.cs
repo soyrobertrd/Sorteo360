@@ -77,7 +77,7 @@ public sealed class PrizeDrawingTests
         draw.WinnerAttendeeId.ShouldBe(winner.Id);
         draw.WinnerName.ShouldBe($"{winner.FirstName} {winner.LastName}");
         draw.WinnerCompany.ShouldBe(winner.Company);
-        draw.WinnerEmail.ShouldBe(winner.EmailNormalized);
+        draw.WinnerIdentityKey.ShouldBe(winner.IdentityKey);
         draw.EligiblePoolSize.ShouldBe(3);
         draw.DrawnAt.ShouldBe(Now);
         draw.DrawnById.ShouldBe(UserId);

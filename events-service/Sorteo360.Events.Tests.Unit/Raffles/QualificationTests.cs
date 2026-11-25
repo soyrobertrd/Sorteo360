@@ -475,7 +475,7 @@ public sealed class QualificationTests
         email, decision, Note: null, DecidedById: Guid.NewGuid(), DecidedAt: new DateTimeOffset(2026, 10, 1, 18, 0, 0, TimeSpan.Zero));
 
     private static Attendee Invitee(string email) => new(
-        EmailNormalized: email,
+        IdentityKey: email,
         FirstName: "Nombre",
         LastName: "Apellido",
         Company: "Agencia",

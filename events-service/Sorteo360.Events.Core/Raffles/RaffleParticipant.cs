@@ -11,7 +11,11 @@ public sealed record RaffleParticipant
     public string FullName { get; init; }
     public string? FirstName { get; init; }
     public string? LastName { get; init; }
-    public string EmailNormalized { get; init; }
+    /// <summary>El correo normalizado, o nulo si la persona entró solo con su ID.</summary>
+    public string? Email { get; init; }
+
+    /// <summary>La clave de la persona en el evento (<see cref="PersonIdentity"/>). Nunca se muestra.</summary>
+    public string IdentityKey { get; init; }
     public string? Company { get; init; }
     public string? Department { get; init; }
     public string? Location { get; init; }
@@ -32,15 +36,6 @@ public sealed record RaffleParticipant
     /// </summary>
     public string? RuleGroup => ResolveRuleGroup(Department, Company);
 
-    /// <summary>
-    /// El dominio del correo interno que se le da a quien llega sin correo: el padrón lo usa como
-    /// clave única, pero no es un correo de nadie. No se muestra ni se le escribe.
-    /// </summary>
-    public const string SyntheticEmailDomain = "@sorteo.local";
-
-    public static bool IsSyntheticEmail(string? email) =>
-        email is not null && email.Trim().EndsWith(SyntheticEmailDomain, StringComparison.OrdinalIgnoreCase);
-
     public static string? ResolveRuleGroup(string? department, string? company) =>
         !string.IsNullOrWhiteSpace(department) ? department.Trim()
         : !string.IsNullOrWhiteSpace(company) ? company.Trim()
@@ -50,7 +45,7 @@ public sealed record RaffleParticipant
         Guid id,
         Guid eventId,
         string fullName,
-        string emailNormalized,
+        string? email,
         string? company,
         string? department,
         string? employeeCode,
@@ -64,10 +59,10 @@ public sealed record RaffleParticipant
         string ticketNumber = "",
         string? firstName = null,
         string? lastName = null,
-        string? location = null)
+        string? location = null,
+        string? identityKey = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fullName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(emailNormalized);
         ArgumentException.ThrowIfNullOrWhiteSpace(qrCode);
         ArgumentException.ThrowIfNullOrWhiteSpace(source);
 
@@ -76,7 +71,10 @@ public sealed record RaffleParticipant
         FullName = fullName;
         FirstName = firstName;
         LastName = lastName;
-        EmailNormalized = emailNormalized;
+        Email = PersonIdentity.NormalizeEmail(email);
+        // Sin clave explícita se arma del correo o del ID; sin ninguno de los dos la fila no existe.
+        IdentityKey = identityKey ?? PersonIdentity.KeyFor(Email, employeeCode)
+            ?? throw new ArgumentException("El participante necesita correo o ID.", nameof(email));
         Company = company;
         Department = department;
         Location = location;

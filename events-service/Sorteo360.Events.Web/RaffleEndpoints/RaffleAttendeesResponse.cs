@@ -38,7 +38,11 @@ public record RaffleAttendeesResponse
 /// <summary>Un asistente, calificado o con el único motivo por el que no.</summary>
 public record RaffleAttendeeResponse
 {
-    public string Email { get; init; } = string.Empty;
+    /// <summary>Nulo si la persona entró solo con su ID.</summary>
+    public string? Email { get; init; }
+
+    /// <summary>La clave interna de la persona en el evento: con ella se la excluye o incluye a mano.</summary>
+    public string IdentityKey { get; init; } = string.Empty;
     public string FirstName { get; init; } = string.Empty;
     public string LastName { get; init; } = string.Empty;
     public string? Company { get; init; }
@@ -64,7 +68,8 @@ public record RaffleAttendeeResponse
 
     public static RaffleAttendeeResponse From(RaffleAttendee attendee) => new()
     {
-        Email = attendee.EmailNormalized,
+        Email = attendee.Email,
+        IdentityKey = attendee.IdentityKey,
         FirstName = attendee.FirstName,
         LastName = attendee.LastName,
         Company = attendee.Company,

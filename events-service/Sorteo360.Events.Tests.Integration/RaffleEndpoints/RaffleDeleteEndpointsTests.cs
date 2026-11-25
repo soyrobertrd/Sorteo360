@@ -51,7 +51,7 @@ public sealed class RaffleDeleteEndpointsTests : IClassFixture<RaffleAttendanceA
         var eventId = await _api.CreateEventWithRaffleAsync();
         var door = FakeAttendanceSource.Invitees(2);
         _factory.Attendance.SetDoor(eventId, door);
-        (await _api.SetOverrideAsync(eventId, door[0].EmailNormalized, AttendeeOverrideDecision.Excluded, "Personal"))
+        (await _api.SetOverrideAsync(eventId, door[0].IdentityKey, AttendeeOverrideDecision.Excluded, "Personal"))
             .StatusCode.ShouldBe(HttpStatusCode.NoContent);
         (await _api.StartAsync(eventId)).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await _api.ReopenAsync(eventId)).StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -87,7 +87,7 @@ public sealed class RaffleDeleteEndpointsTests : IClassFixture<RaffleAttendanceA
         await _api.CreatePrizesAsync(eventId, await _api.CreateRoundAsync(eventId), quantity: 1);
         var door = FakeAttendanceSource.Invitees(1);
         _factory.Attendance.SetDoor(eventId, door);
-        (await _api.SetOverrideAsync(eventId, door[0].EmailNormalized, AttendeeOverrideDecision.Excluded))
+        (await _api.SetOverrideAsync(eventId, door[0].IdentityKey, AttendeeOverrideDecision.Excluded))
             .StatusCode.ShouldBe(HttpStatusCode.NoContent);
         await _api.SetRaffleStateAsync(eventId, state);
 
@@ -161,7 +161,7 @@ public sealed class RaffleDeleteEndpointsTests : IClassFixture<RaffleAttendanceA
         var roundId = await _api.CreateRoundAsync(eventId);
         var door = FakeAttendanceSource.Invitees(1);
         _factory.Attendance.SetDoor(eventId, door);
-        var email = door[0].EmailNormalized;
+        var email = door[0].IdentityKey;
         (await _api.SetOverrideAsync(eventId, email, AttendeeOverrideDecision.Excluded))
             .StatusCode.ShouldBe(HttpStatusCode.NoContent);
 

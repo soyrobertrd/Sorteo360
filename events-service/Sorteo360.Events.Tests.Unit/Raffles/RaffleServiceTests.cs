@@ -650,7 +650,7 @@ public sealed class RaffleServiceTests
 
         var result = await _sut.GetAttendeesAsync(EventId, CancellationToken.None);
 
-        result.Value.Attendees.ShouldNotBeNull().Select(a => a.EmailNormalized)
+        result.Value.Attendees.ShouldNotBeNull().Select(a => a.IdentityKey)
             .ShouldBe(["c@agencia.com", "z@agencia.com", "a@agencia.com", "b@agencia.com"]);
     }
 
@@ -800,7 +800,7 @@ public sealed class RaffleServiceTests
         result.Value.Readiness.IsReadyToStart.ShouldBeNull();
         var freeze = frozen().ShouldNotBeNull();
         freeze.Started.StartedById.ShouldBe(UserId);
-        freeze.Attendees.Select(a => (a.EmailNormalized, a.Qualified)).ShouldBe(
+        freeze.Attendees.Select(a => (a.IdentityKey, a.Qualified)).ShouldBe(
             [("ana@agencia.com", true), ("luis@sorteo360.local", true)], ignoreOrder: true);
         await _attendance.DidNotReceive().GetAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
@@ -829,7 +829,7 @@ public sealed class RaffleServiceTests
 
         await _sut.StartAsync(EventId, UserId, CancellationToken.None);
 
-        frozen().ShouldNotBeNull().Attendees.Single(a => a.EmailNormalized == "luis@agencia.com")
+        frozen().ShouldNotBeNull().Attendees.Single(a => a.IdentityKey == "luis@agencia.com")
             .ExclusionReason.ShouldBe(ExclusionReason.ManuallyExcluded);
         await _repository.DidNotReceive().ListOverridesAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
@@ -993,7 +993,7 @@ public sealed class RaffleServiceTests
         await _repository.Received(1).UpsertOverrideAsync(
             raffle.Id,
             Arg.Is<AttendeeOverride>(o =>
-                o.EmailNormalized == "ana@agencia.com"
+                o.IdentityKey == "ana@agencia.com"
                 && o.Decision == AttendeeOverrideDecision.Included
                 && o.Note == "Nota"
                 && o.DecidedById == UserId),

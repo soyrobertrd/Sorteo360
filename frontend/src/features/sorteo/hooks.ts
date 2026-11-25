@@ -13,6 +13,7 @@ import type {
   ReissueRaffleRequest,
   ReversePrizeHandoverRequest,
   SetAttendeeOverrideRequest,
+  BulkExcludeAttendeesRequest,
   SetCertificateSignersRequest,
   RaffleDisplayFields,
   VoidPrizeDrawRequest,
@@ -339,6 +340,15 @@ export function useSetAttendeeOverride(eventId: string) {
   const invalidate = useInvalidateRaffles()
   return useMutation({
     mutationFn: (body: SetAttendeeOverrideRequest) => api.setAttendeeOverride(eventId, body),
+    onSettled: invalidate,
+  })
+}
+
+/** Excluir en lote cambia la lista, el bombo y si el sorteo puede arrancar: se relee todo el sorteo. */
+export function useBulkExcludeAttendees(eventId: string) {
+  const invalidate = useInvalidateRaffles()
+  return useMutation({
+    mutationFn: (body: BulkExcludeAttendeesRequest) => api.bulkExcludeAttendees(eventId, body),
     onSettled: invalidate,
   })
 }

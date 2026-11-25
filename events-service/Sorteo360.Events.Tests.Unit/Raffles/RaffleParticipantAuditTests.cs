@@ -96,6 +96,7 @@ public sealed class RaffleParticipantAuditTests
         Id = id,
         FullName = "Persona",
         Email = email,
+        IdentityKey = email,
         QrCode = "qr-" + id,
         CheckedIn = true,
         Qualified = true,

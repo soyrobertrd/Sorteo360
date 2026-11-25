@@ -68,7 +68,7 @@ public sealed class RaffleStartEndpointsTests : IClassFixture<RaffleAttendanceAp
         body.IsReadyToStart.ShouldBeNull();
 
         var rows = await _api.GetStoredAttendeesAsync(eventId);
-        rows.Select(r => r.Email).ShouldBe(door.Select(a => a.EmailNormalized), ignoreOrder: true);
+        rows.Select(r => r.Email).ShouldBe(door.Select(a => a.IdentityKey), ignoreOrder: true);
         var frozen = await _api.GetAttendeesAsync(eventId);
         (frozen.Qualified!.Value + frozen.Attendees!.Count(a => !a.Qualified)).ShouldBe(frozen.CheckedIn!.Value);
         frozen.CheckedIn.ShouldBe(door.Length);

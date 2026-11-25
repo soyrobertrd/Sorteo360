@@ -60,7 +60,7 @@ import {
   useSetRaffleParticipantCheckIn,
 } from '../hooks'
 import { encolar, esSinConexion, leerCola, vaciarCola } from '../colaCheckin'
-import { correoVisible, sinPuerta, UNOVERRIDABLE_EXCLUSIONS } from '../raffleView'
+import { correoOSinCorreo, sinPuerta, UNOVERRIDABLE_EXCLUSIONS } from '../raffleView'
 import { useEtiquetasPadron } from '../etiquetasPadron'
 import { RowActionMenu } from '@/components/ui/RowActionMenu'
 import { AttendeeOverrideModal } from './AttendeeOverrideModal'
@@ -77,7 +77,8 @@ interface UnifiedParticipantRow {
   key: string
   participantId: string | null
   fullName: string
-  email: string
+  email: string | null
+  identityKey: string
   company: string | null
   department: string | null
   employeeCode: string | null
@@ -114,10 +115,11 @@ function toUnifiedFromParticipant(
     att?.exclusionReason ?? (manualDecision === 'excluded' ? 'manually_excluded' : null)
 
   return {
-    key: `p-${p.id}-${p.email.toLowerCase()}`,
+    key: `p-${p.id}-${p.identityKey}`,
     participantId: p.id,
     fullName: p.fullName,
     email: p.email,
+    identityKey: p.identityKey,
     company: p.company ?? att?.company ?? null,
     department: p.department ?? null,
     employeeCode: p.employeeCode ?? null,
@@ -133,6 +135,7 @@ function toUnifiedFromParticipant(
     manualNote: att?.manualNote ?? null,
     attendeeObj: att ?? {
       email: p.email,
+      identityKey: p.identityKey,
       firstName,
       lastName,
       company: p.company,
@@ -151,12 +154,13 @@ function toUnifiedFromAttendee(
   att: RaffleAttendeeResponse,
   p?: RaffleParticipantItem,
 ): UnifiedParticipantRow {
-  const attName = `${att.firstName} ${att.lastName}`.trim() || att.email
+  const attName = `${att.firstName} ${att.lastName}`.trim() || att.email || 'Participante'
   return {
-    key: `a-${att.email.toLowerCase()}`,
+    key: `a-${att.identityKey}`,
     participantId: p?.id ?? null,
     fullName: p?.fullName ?? attName,
     email: att.email,
+    identityKey: att.identityKey,
     company: p?.company ?? att.company,
     department: p?.department ?? null,
     employeeCode: p?.employeeCode ?? null,
@@ -250,13 +254,14 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
   const unifiedRows = useMemo<UnifiedParticipantRow[]>(() => {
     const participants = participantsQuery.data ?? []
     const attendees = attendeesQuery.data?.attendees ?? []
+    // La identidad es la identityKey: el correo, o el ID de quien no tiene correo.
     const participantByEmail = new Map<string, RaffleParticipantItem>()
     for (const p of participants) {
-      participantByEmail.set(p.email.trim().toLowerCase(), p)
+      participantByEmail.set(p.identityKey, p)
     }
     const attendeeByEmail = new Map<string, RaffleAttendeeResponse>()
     for (const a of attendees) {
-      attendeeByEmail.set(a.email.trim().toLowerCase(), a)
+      attendeeByEmail.set(a.identityKey, a)
     }
 
     const rows: UnifiedParticipantRow[] = []
@@ -264,12 +269,12 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
 
     if (!enBorrador && attendees.length > 0) {
       for (const att of attendees) {
-        const key = att.email.trim().toLowerCase()
+        const key = att.identityKey
         seenEmails.add(key)
         rows.push(toUnifiedFromAttendee(att, participantByEmail.get(key)))
       }
       for (const p of participants) {
-        const key = p.email.trim().toLowerCase()
+        const key = p.identityKey
         if (seenEmails.has(key)) continue
         seenEmails.add(key)
         rows.push(toUnifiedFromParticipant(p, attendeeByEmail.get(key)))
@@ -278,12 +283,12 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
     }
 
     for (const p of participants) {
-      const key = p.email.trim().toLowerCase()
+      const key = p.identityKey
       seenEmails.add(key)
       rows.push(toUnifiedFromParticipant(p, attendeeByEmail.get(key)))
     }
     for (const att of attendees) {
-      const key = att.email.trim().toLowerCase()
+      const key = att.identityKey
       if (seenEmails.has(key)) continue
       seenEmails.add(key)
       rows.push(toUnifiedFromAttendee(att, participantByEmail.get(key)))
@@ -324,7 +329,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
           row.key,
           [
             row.fullName,
-            row.email,
+            row.email ?? '',
             row.company ?? '',
             row.department ?? '',
             row.employeeCode ?? '',
@@ -360,7 +365,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
   const badgeInvitados = useMemo<Invitado[]>(
     () =>
       unifiedRows.map((row) => ({
-        id: row.qrCode ?? row.participantId ?? row.email,
+        id: row.qrCode ?? row.participantId ?? row.identityKey,
         eventoId: eventId,
         eventoNombre,
         nombre: row.fullName,
@@ -368,7 +373,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
         empresa:
           [...new Set([row.company, row.department].filter(Boolean))].join(' · ') ||
           branding.companyName,
-        email: row.email,
+        email: row.email ?? '',
         tipo: 'Invitado General',
         status: row.checkedIn ? 'CHECKED_IN' : 'REGISTERED',
         score: 100,
@@ -381,7 +386,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
     setActionError(null)
     setFeedback(null)
     try {
-      const targetCode = row.participantId ?? row.qrCode ?? row.email
+      const targetCode = row.participantId ?? row.qrCode ?? row.email ?? row.employeeCode ?? ''
       const nextState = !row.checkedIn
       await setParticipantCheckIn.mutateAsync({
         registrationIdOrCode: targetCode,
@@ -611,7 +616,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
       {/* Tabla de participantes */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full min-w-[640px] text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 font-bold uppercase tracking-wider text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
                 <th className="px-4 py-3">Participante</th>
@@ -700,7 +705,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
                                   ? `Llegó ${row.checkedInAt ? formatDateTime(row.checkedInAt) : ''} · clic para retirar el check-in`
                                   : 'Clic para marcar el check-in')
                               }
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border transition-colors ${
+                              className={`inline-flex items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded-full text-[11px] font-bold border transition-colors ${
                                 row.checkedIn
                                   ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/50 dark:border-emerald-800 dark:text-emerald-300'
                                   : 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300'
@@ -813,7 +818,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
                               {row.manualDecision ? (
                                 <MenuItem
                                   disabled={removeOverride.isPending}
-                                  onClick={() => removeOverride.mutate(row.email)}
+                                  onClick={() => removeOverride.mutate(row.identityKey)}
                                 >
                                   <RotateCcw className="h-4 w-4" /> Quitar ajuste manual
                                 </MenuItem>
@@ -975,7 +980,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
           onConfirm={(note) => {
             setOverride.mutate(
               {
-                email: overrideTarget.attendee.email,
+                identityKey: overrideTarget.attendee.identityKey,
                 decision: overrideTarget.decision,
                 note,
               },
@@ -999,7 +1004,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
           pending={removeParticipant.isPending}
           error={removeParticipant.error}
           onConfirm={() => {
-            removeParticipant.mutate(removeTarget.email, {
+            removeParticipant.mutate(removeTarget.participantId ?? removeTarget.email ?? '', {
               onSuccess: () => {
                 setFeedback(`Se quitó a ${removeTarget.fullName} del padrón del sorteo.`)
                 setRemoveTarget(null)
@@ -1010,8 +1015,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
         >
           <p>
             ¿Seguro que desea quitar a <strong>{removeTarget.fullName}</strong>
-            {correoVisible(removeTarget.email) && ` (${correoVisible(removeTarget.email)})`} de la
-            lista de este sorteo?
+            {removeTarget.email && ` (${removeTarget.email})`} de la lista de este sorteo?
           </p>
         </ConfirmDialog>
       )}
@@ -1039,7 +1043,7 @@ function AgregarParticipanteModal({
   const importMutation = useImportRaffleParticipants(eventId)
   const etiquetas = useEtiquetasPadron(eventId)
   const [fullName, setFullName] = useState(inicial?.fullName ?? '')
-  const [email, setEmail] = useState(correoVisible(inicial?.email) ?? '')
+  const [email, setEmail] = useState(inicial?.email ?? '')
   const [company, setCompany] = useState(inicial?.company ?? defaultCompany)
   const [department, setDepartment] = useState(inicial?.department ?? '')
   const [employeeCode, setEmployeeCode] = useState(inicial?.employeeCode ?? '')
@@ -1361,7 +1365,7 @@ function QrIndividualModal({
   onToggleCheckIn: () => Promise<void>
   onClose: () => void
 }) {
-  const qrText = row.qrCode ?? row.employeeCode ?? row.email
+  const qrText = row.qrCode ?? row.employeeCode ?? row.email ?? row.identityKey
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
 
   useEffect(() => {
@@ -1392,9 +1396,7 @@ function QrIndividualModal({
             {companyName}
             {row.department && row.department !== companyName ? ` · ${row.department}` : ''}
           </p>
-          {correoVisible(row.email) && (
-            <p className="text-xs text-slate-400">{correoVisible(row.email)}</p>
-          )}
+          <p className="text-xs text-slate-400">{correoOSinCorreo(row.email)}</p>
         </div>
 
         <div className="inline-flex flex-col items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-700 bg-white p-4 shadow-xs">

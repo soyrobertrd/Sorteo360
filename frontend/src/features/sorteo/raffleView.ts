@@ -128,9 +128,6 @@ export function agruparPremios(premios: PrizeResponse[]): GrupoRonda[] {
   return [...grupos.values()]
 }
 
-/**
- * El correo que se puede mostrar. Quien llega sin correo recibe uno interno (`…@sorteo.local`)
- * que el padrón usa como clave: no es de nadie, así que no se muestra ni se exporta.
- */
-export const correoVisible = (email: string | null | undefined): string | null =>
-  email && !/@sorteo\.local$/i.test(email.trim()) ? email : null
+/** El correo para mostrar, o «Sin correo» si la persona entró solo con su ID. */
+export const correoOSinCorreo = (email: string | null | undefined): string =>
+  email?.trim() || 'Sin correo'

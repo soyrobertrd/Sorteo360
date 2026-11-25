@@ -122,12 +122,12 @@ internal sealed class RaffleTestApi
         return await context.Database
             .SqlQuery<StoredOverride>(
                 $"""
-                SELECT o.email_normalized AS "Email", o.decision AS "Decision", o.note AS "Note",
+                SELECT o.identity_key AS "Email", o.decision AS "Decision", o.note AS "Note",
                        o.decided_by_id AS "DecidedById", o.decided_at AS "DecidedAt"
                 FROM events.raffle_attendee_override o
                 JOIN events.raffle r ON r.id = o.raffle_id
                 WHERE r.event_id = {eventId}
-                ORDER BY o.email_normalized
+                ORDER BY o.identity_key
                 """)
             .ToListAsync();
     }
@@ -187,14 +187,14 @@ internal sealed class RaffleTestApi
         return await context.Database
             .SqlQuery<StoredAttendee>(
                 $"""
-                SELECT a.email_normalized AS "Email", a.contact_id AS "ContactId", a.qualified AS "Qualified",
+                SELECT a.identity_key AS "Email", a.contact_id AS "ContactId", a.qualified AS "Qualified",
                        a.exclusion_reason AS "ExclusionReason", a.manual_decision AS "ManualDecision",
                        a.manual_decided_by_id AS "ManualDecidedById", a.manual_note AS "ManualNote",
                        a.overruled_reason AS "OverruledReason"
                 FROM events.raffle_attendee a
                 JOIN events.raffle r ON r.id = a.raffle_id
                 WHERE r.event_id = {eventId}
-                ORDER BY a.email_normalized
+                ORDER BY a.identity_key
                 """)
             .ToListAsync();
     }
@@ -495,7 +495,7 @@ internal sealed class RaffleTestApi
                 SELECT d.id AS "Id", d.prize_id AS "PrizeId", d.redemption_code AS "RedemptionCode",
                        d.void_code AS "VoidCode", d.void_note AS "VoidNote", d.voided_at AS "VoidedAt",
                        d.voided_by_id AS "VoidedById", d.winner_name AS "WinnerName",
-                       d.winner_email AS "WinnerEmail",
+                       d.winner_identity_key AS "WinnerIdentityKey",
                        d.winner_notification_status AS "WinnerNotificationStatus",
                        d.winner_notification_id AS "WinnerNotificationId",
                        d.winner_attendee_id AS "WinnerAttendeeId"
@@ -523,7 +523,7 @@ internal sealed record StoredDraw(
     DateTimeOffset? VoidedAt,
     Guid? VoidedById,
     string WinnerName,
-    string WinnerEmail,
+    string WinnerIdentityKey,
     string? WinnerNotificationStatus,
     string? WinnerNotificationId,
     Guid WinnerAttendeeId);

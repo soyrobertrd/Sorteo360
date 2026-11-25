@@ -31,6 +31,18 @@ describe('premioFile', () => {
     ])
   })
 
+  it('no rechaza un premio por su valor: vacío queda sin valor y un texto se guarda tal cual', () => {
+    const m = textoAMatriz('Ronda;Premio;Valor\n1;Bono;\n1;Viaje;Pasaje doble\n2;TV;-\n')
+    const d = detectarAsignacion(m)
+    const r = leerPremios(m, d.asignacion, d.conEncabezado)
+    expect(r.problemas).toEqual([])
+    expect(r.premios.map((p) => [p.nombre, p.valor])).toEqual([
+      ['Bono', null],
+      ['Viaje', 'Pasaje doble'],
+      ['TV', '-'],
+    ])
+  })
+
   it('sin encabezado propone Ronda, Premio y Valor en las primeras columnas', () => {
     const m = limpiarMatriz([
       [1, 'Laptop', 45000],

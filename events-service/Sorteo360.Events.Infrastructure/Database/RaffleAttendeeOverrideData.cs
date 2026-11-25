@@ -8,7 +8,7 @@ internal sealed class RaffleAttendeeOverrideData
 {
     public Guid Id { get; set; }
     public Guid RaffleId { get; set; }
-    public string EmailNormalized { get; set; } = string.Empty;
+    public string IdentityKey { get; set; } = string.Empty;
     public string Decision { get; set; } = string.Empty;
     public string? Note { get; set; }
     public Guid DecidedById { get; set; }

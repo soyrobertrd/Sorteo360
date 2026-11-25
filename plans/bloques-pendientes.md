@@ -621,3 +621,12 @@ servicios, `shared/`, `infra/` y `docs/`, y el frontend solo `frontend/`.
   un job `e2e` nuevo (`npm ci`, `npx playwright install --with-deps chromium`,
   `npm run test:e2e` en modo mock, que levanta Vite solo en `:5199`). No se probó en un runner:
   se verá en el primer push. Las pruebas de integración con Docker siguen sin decidir.
+- 2026-11-25: **Exclusión en lote** hecha, sin commit, en la rama `feat/exclusion-en-lote`
+  (`plans/exclusion-en-lote.md`, pasos 0–6). Paso 0: ya no hay correos `@sorteo.local`; la
+  identidad es `identity_key` (correo, o `id:` + ID) y la migración `RemoveSyntheticEmails` la
+  arma sobre los datos viejos (probada sobre una copia de la base local: 14.073 filas, todas a
+  `id:`, ninguna `legacy:`; también se probó el `Down`). Una fila sin correo ni ID se rechaza
+  (`missing_email_and_id`). El aviso al ganador sin correo queda en `no_recipient` (no se creó
+  `skipped_no_email`). Endpoint `POST …/attendees/overrides/bulk-exclude`, pantalla «Excluir en
+  lote» y e2e nuevo. El mock pasó a `sorteo360.mock.state.v4`. Falla previa, no de este bloque:
+  `RaffleDrawnSetupEndpointsTests.UpdateRaffle_Returns204WithTheNewRules…(False, False)`.

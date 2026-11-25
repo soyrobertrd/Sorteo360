@@ -45,7 +45,8 @@ export function Tabs<T extends string>({
   const wrap = vertical
     ? 'flex flex-col gap-1'
     : variant === 'underline'
-      ? 'flex flex-wrap items-end gap-6'
+      ? // En una fila que se desliza: en el teléfono las pestañas no saltan a dos renglones.
+        'flex items-end gap-6 overflow-x-auto overscroll-x-contain pb-px [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
       : variant === 'card'
         ? 'w-full rounded-xl border border-slate-200/80 bg-white p-2.5 px-3.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900 flex flex-wrap items-center gap-2'
         : variant === 'pill'
@@ -100,7 +101,7 @@ export function Tabs<T extends string>({
               vertical
                 ? 'w-full rounded-xl text-xs'
                 : variant === 'underline'
-                  ? 'rounded-none'
+                  ? 'shrink-0 whitespace-nowrap rounded-none'
                   : 'rounded-lg',
               variant === 'segmented' && !vertical && 'rounded-lg',
               vertical && (tab.trailing != null ? 'justify-between' : 'justify-start'),

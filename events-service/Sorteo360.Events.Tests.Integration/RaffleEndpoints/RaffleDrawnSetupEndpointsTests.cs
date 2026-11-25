@@ -144,7 +144,8 @@ public sealed class RaffleDrawnSetupEndpointsTests : IClassFixture<RaffleAttenda
         var raffle = await _api.GetRaffleAsync(eventId);
         raffle.State.ShouldBe(RaffleState.InProgress);
         raffle.VisualStyle.ShouldBe(RaffleVisualStyle.SequentialNames);
-        raffle.OnePrizePerPerson.ShouldBe(onePrizePerPerson);
+        // Un premio por persona rige siempre (RR. HH., 2026-11-23): el PATCH no lo apaga.
+        raffle.OnePrizePerPerson.ShouldBeTrue();
         raffle.OnePrizePerCompany.ShouldBe(onePrizePerCompany);
     }
 

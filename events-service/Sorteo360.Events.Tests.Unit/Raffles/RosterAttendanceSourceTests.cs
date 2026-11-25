@@ -24,7 +24,7 @@ public sealed class RosterAttendanceSourceTests
             id: Guid.NewGuid(),
             eventId: EventId,
             fullName: "Ana María Pérez",
-            emailNormalized: "ana@empresa.do",
+            email: "ana@empresa.do",
             company: null,
             department: "Finanzas",
             employeeCode: "EMP-001",
@@ -40,7 +40,7 @@ public sealed class RosterAttendanceSourceTests
             id: Guid.NewGuid(),
             eventId: EventId,
             fullName: "Luis Gómez",
-            emailNormalized: "luis@empresa.do",
+            email: "luis@empresa.do",
             company: "Empresa SA",
             department: "TI",
             employeeCode: "EMP-002",
@@ -59,7 +59,7 @@ public sealed class RosterAttendanceSourceTests
 
         result.IsSuccess.ShouldBeTrue();
         var attendee = result.Value.ShouldHaveSingleItem();
-        attendee.EmailNormalized.ShouldBe("ana@empresa.do");
+        attendee.IdentityKey.ShouldBe("ana@empresa.do");
         attendee.FirstName.ShouldBe("Ana");
         attendee.LastName.ShouldBe("María Pérez");
         attendee.Company.ShouldBe("Finanzas");

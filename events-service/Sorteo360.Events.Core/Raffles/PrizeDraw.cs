@@ -20,7 +20,7 @@ public sealed record PrizeDraw(
     Guid WinnerAttendeeId,
     string WinnerName,
     string? WinnerCompany,
-    string WinnerEmail,
+    string WinnerIdentityKey,
     DateTimeOffset DrawnAt,
     Guid DrawnById,
     int EligiblePoolSize,

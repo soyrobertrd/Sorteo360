@@ -717,7 +717,7 @@ public sealed class RaffleRepository : IRaffleRepository
             await _context.RaffleAttendeeOverrides
                 .AsNoTracking()
                 .Where(o => o.RaffleId == raffleId)
-                .Select(o => new AttendeeOverride(o.EmailNormalized, o.Decision, o.Note, o.DecidedById, o.DecidedAt))
+                .Select(o => new AttendeeOverride(o.IdentityKey, o.Decision, o.Note, o.DecidedById, o.DecidedAt))
                 .ToListAsync(cancellationToken));
     }
 
@@ -740,11 +740,11 @@ public sealed class RaffleRepository : IRaffleRepository
             await _context.Database.ExecuteSqlAsync(
                 $"""
                 INSERT INTO events.raffle_attendee_override
-                    (id, raffle_id, email_normalized, decision, note, decided_by_id, decided_at)
+                    (id, raffle_id, identity_key, decision, note, decided_by_id, decided_at)
                 VALUES
-                    ({Guid.NewGuid()}, {raffleId}, {attendeeOverride.EmailNormalized}, {attendeeOverride.Decision},
+                    ({Guid.NewGuid()}, {raffleId}, {attendeeOverride.IdentityKey}, {attendeeOverride.Decision},
                      {attendeeOverride.Note}, {attendeeOverride.DecidedById}, {attendeeOverride.DecidedAt})
-                ON CONFLICT (raffle_id, email_normalized) DO UPDATE SET
+                ON CONFLICT (raffle_id, identity_key) DO UPDATE SET
                     decision = EXCLUDED.decision,
                     note = EXCLUDED.note,
                     decided_by_id = EXCLUDED.decided_by_id,
@@ -762,7 +762,7 @@ public sealed class RaffleRepository : IRaffleRepository
 
     public async Task<UnitResult<BaseError>> DeleteOverrideAsync(
         Guid raffleId,
-        string emailNormalized,
+        string identityKey,
         CancellationToken cancellationToken)
     {
         var result = await DbResult.TryResultAsync<bool>(_logger, "borrar la decisión manual", async () =>
@@ -773,7 +773,7 @@ public sealed class RaffleRepository : IRaffleRepository
                 return Result.Failure<bool, BaseError>(isDraft.Error);
 
             await _context.RaffleAttendeeOverrides
-                .Where(o => o.RaffleId == raffleId && o.EmailNormalized == emailNormalized)
+                .Where(o => o.RaffleId == raffleId && o.IdentityKey == identityKey)
                 .ExecuteDeleteAsync(cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
@@ -781,6 +781,82 @@ public sealed class RaffleRepository : IRaffleRepository
         });
 
         return result.IsSuccess ? UnitResult.Success<BaseError>() : UnitResult.Failure(result.Error);
+    }
+
+
+    public async Task<UnitResult<BaseError>> UpsertOverridesAsync(
+        Guid raffleId,
+        IReadOnlyList<AttendeeOverride> overrides,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(overrides);
+
+        var result = await DbResult.TryResultAsync<bool>(_logger, "guardar las decisiones manuales en lote", async () =>
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            var isDraft = await LockDraftAsync(raffleId, cancellationToken);
+            if (isDraft.IsFailure)
+                return Result.Failure<bool, BaseError>(isDraft.Error);
+
+            if (overrides.Count > 0)
+            {
+                var ids = overrides.Select(_ => Guid.NewGuid()).ToArray();
+                var keys = overrides.Select(o => o.IdentityKey).ToArray();
+                var decisions = overrides.Select(o => o.Decision).ToArray();
+                var notes = overrides.Select(o => o.Note).ToArray();
+                var decidedBy = overrides.Select(o => o.DecidedById).ToArray();
+                var decidedAt = overrides.Select(o => o.DecidedAt).ToArray();
+
+                // Una sola sentencia para el lote entero, sobre el mismo índice único que la de a uno.
+                await _context.Database.ExecuteSqlAsync(
+                    $"""
+                    INSERT INTO events.raffle_attendee_override
+                        (id, raffle_id, identity_key, decision, note, decided_by_id, decided_at)
+                    SELECT t.id, {raffleId}, t.identity_key, t.decision, t.note, t.decided_by_id, t.decided_at
+                    FROM unnest({ids}, {keys}, {decisions}, {notes}, {decidedBy}, {decidedAt})
+                        AS t(id, identity_key, decision, note, decided_by_id, decided_at)
+                    ON CONFLICT (raffle_id, identity_key) DO UPDATE SET
+                        decision = EXCLUDED.decision,
+                        note = EXCLUDED.note,
+                        decided_by_id = EXCLUDED.decided_by_id,
+                        decided_at = EXCLUDED.decided_at
+                    """,
+                    cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            return Result.Success<bool, BaseError>(true);
+        });
+
+        return result.IsSuccess ? UnitResult.Success<BaseError>() : UnitResult.Failure(result.Error);
+    }
+
+    public Task<Result<IReadOnlyList<RosterPerson>, BaseError>> FindRosterPeopleAsync(
+        Guid eventId,
+        IReadOnlyCollection<string> emails,
+        IReadOnlyCollection<string> employeeIds,
+        IReadOnlyCollection<string> identityKeys,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(emails);
+        ArgumentNullException.ThrowIfNull(employeeIds);
+        ArgumentNullException.ThrowIfNull(identityKeys);
+
+        return DbResult.TryAsync<IReadOnlyList<RosterPerson>>(_logger, "buscar personas en el padrón", async () =>
+        {
+            var emailList = emails.ToList();
+            var idList = employeeIds.ToList();
+            var keyList = identityKeys.ToList();
+
+            return await _context.RaffleParticipants
+                .AsNoTracking()
+                .Where(p => p.EventId == eventId && (
+                    (p.EmailNormalized != null && emailList.Contains(p.EmailNormalized))
+                    || (p.EmployeeCode != null && idList.Contains(p.EmployeeCode.Trim().ToLower()))
+                    || keyList.Contains(p.IdentityKey)))
+                .Select(p => new RosterPerson(p.IdentityKey, p.EmailNormalized, p.EmployeeCode))
+                .ToListAsync(cancellationToken);
+        });
     }
 
 
@@ -807,7 +883,7 @@ public sealed class RaffleRepository : IRaffleRepository
             var overrides = await _context.RaffleAttendeeOverrides
                 .AsNoTracking()
                 .Where(o => o.RaffleId == raffleId)
-                .Select(o => new AttendeeOverride(o.EmailNormalized, o.Decision, o.Note, o.DecidedById, o.DecidedAt))
+                .Select(o => new AttendeeOverride(o.IdentityKey, o.Decision, o.Note, o.DecidedById, o.DecidedAt))
                 .ToListAsync(cancellationToken);
 
             var decided = freeze(MapToRaffle(data), overrides);
@@ -1480,7 +1556,7 @@ public sealed class RaffleRepository : IRaffleRepository
             .ToListAsync(cancellationToken);
 
         var winnerEmails = draws
-            .Select(d => d.WinnerEmail)
+            .Select(d => d.WinnerIdentityKey)
             .Where(e => !string.IsNullOrWhiteSpace(e))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -1498,10 +1574,10 @@ public sealed class RaffleRepository : IRaffleRepository
             {
                 var participants = await _context.RaffleParticipants
                     .AsNoTracking()
-                    .Where(p => p.EventId == eventId && winnerEmails.Contains(p.EmailNormalized))
+                    .Where(p => p.EventId == eventId && winnerEmails.Contains(p.IdentityKey))
                     .Select(p => new
                     {
-                        p.EmailNormalized,
+                        p.IdentityKey,
                         p.TicketNumber,
                         p.EmployeeCode,
                         p.Department,
@@ -1515,7 +1591,7 @@ public sealed class RaffleRepository : IRaffleRepository
                 foreach (var p in participants)
                 {
                     participantByEmail.TryAdd(
-                        p.EmailNormalized,
+                        p.IdentityKey,
                         new WinnerRosterInfo(
                             string.IsNullOrWhiteSpace(p.TicketNumber) ? null : p.TicketNumber,
                             p.EmployeeCode,
@@ -1546,8 +1622,8 @@ public sealed class RaffleRepository : IRaffleRepository
             {
                 var mapped = MapToDraw(d);
                 WinnerRosterInfo? info = null;
-                if (participantByEmail is not null && !string.IsNullOrWhiteSpace(d.WinnerEmail))
-                    participantByEmail.TryGetValue(d.WinnerEmail, out info);
+                if (participantByEmail is not null && !string.IsNullOrWhiteSpace(d.WinnerIdentityKey))
+                    participantByEmail.TryGetValue(d.WinnerIdentityKey, out info);
 
                 return mapped with
                 {
@@ -1572,7 +1648,7 @@ public sealed class RaffleRepository : IRaffleRepository
             .Where(a => a.RaffleId == raffleId)
             .Select(a => new RaffleAttendee(
                 a.Id,
-                a.EmailNormalized,
+                a.IdentityKey,
                 a.ContactId,
                 a.FirstName,
                 a.LastName,
@@ -1681,7 +1757,7 @@ public sealed class RaffleRepository : IRaffleRepository
         WinnerAttendeeId = draw.WinnerAttendeeId,
         WinnerName = draw.WinnerName,
         WinnerCompany = draw.WinnerCompany,
-        WinnerEmail = draw.WinnerEmail,
+        WinnerIdentityKey = draw.WinnerIdentityKey,
         DrawnAt = draw.DrawnAt,
         DrawnById = draw.DrawnById,
         EligiblePoolSize = draw.EligiblePoolSize,
@@ -1702,7 +1778,7 @@ public sealed class RaffleRepository : IRaffleRepository
         data.WinnerAttendeeId,
         data.WinnerName,
         data.WinnerCompany,
-        data.WinnerEmail,
+        data.WinnerIdentityKey,
         data.DrawnAt,
         data.DrawnById,
         data.EligiblePoolSize,
@@ -1750,7 +1826,7 @@ public sealed class RaffleRepository : IRaffleRepository
     {
         Id = attendee.Id,
         RaffleId = raffleId,
-        EmailNormalized = attendee.EmailNormalized,
+        IdentityKey = attendee.IdentityKey,
         ContactId = attendee.ContactId,
         FirstName = attendee.FirstName,
         LastName = attendee.LastName,

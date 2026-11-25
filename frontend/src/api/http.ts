@@ -48,6 +48,8 @@ import type {
   ReissueRaffleRequest,
   ReversePrizeHandoverRequest,
   SetAttendeeOverrideRequest,
+  BulkExcludeAttendeesRequest,
+  BulkExcludeAttendeesResponse,
   SetCertificateSignersRequest,
   RaffleDisplayFields,
   UpdatePrizeRequest,
@@ -672,10 +674,20 @@ export class HttpApiClient implements ApiClient {
     })
   }
 
-  removeAttendeeOverride(eventId: string, email: string): Promise<void> {
+  bulkExcludeAttendees(
+    eventId: string,
+    body: BulkExcludeAttendeesRequest,
+  ): Promise<BulkExcludeAttendeesResponse> {
+    return request(`/v1/events/${eventId}/raffle/attendees/overrides/bulk-exclude`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
+  }
+
+  removeAttendeeOverride(eventId: string, identityKey: string): Promise<void> {
     return request(`/v1/events/${eventId}/raffle/attendees/overrides`, {
       method: 'DELETE',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ identityKey }),
     })
   }
 

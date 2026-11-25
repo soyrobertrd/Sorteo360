@@ -134,11 +134,11 @@ export function StatCard({
     <>
       <span
         className={cn(
-          'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-105',
+          'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border sm:h-12 sm:w-12 transition-transform duration-200 group-hover:scale-105',
           iconClassName || colorPreset.iconWrapper,
         )}
       >
-        <Icon size={22} className="stroke-[2.2]" />
+        <Icon size={20} className="stroke-[2.2] sm:size-[22px]" />
       </span>
 
       <span className="min-w-0 flex-1">
@@ -163,18 +163,19 @@ export function StatCard({
       {interactive && showArrow && layout !== 'vertical' && (
         <ArrowRight
           size={16}
-          className="shrink-0 text-slate-300 transition-colors group-hover:text-slate-500 dark:text-slate-600 dark:group-hover:text-slate-400"
+          className="hidden shrink-0 sm:block text-slate-300 transition-colors group-hover:text-slate-500 dark:text-slate-600 dark:group-hover:text-slate-400"
         />
       )}
     </>
   )
 
   const baseClasses = cn(
-    'rounded-2xl border bg-white p-5 shadow-2xs transition-all dark:bg-slate-900',
+    'min-w-0 rounded-2xl border bg-white p-4 shadow-2xs transition-all sm:p-5 dark:bg-slate-900',
     colorPreset.cardBorder,
     layout === 'vertical'
       ? 'flex flex-col items-start justify-between gap-3'
-      : 'flex items-center gap-4',
+      : // En el teléfono, apilada: así caben dos por fila.
+        'flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4',
     interactive &&
       'group cursor-pointer hover:-translate-y-0.5 hover:shadow-md dark:hover:bg-slate-800/40',
     className,

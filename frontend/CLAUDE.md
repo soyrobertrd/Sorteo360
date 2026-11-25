@@ -12,7 +12,7 @@ existen pero dependen de sus interruptores (`features/admin/featureCatalogue.ts`
 ofrecen en ninguna pantalla.
 
 Dos modos: `http` contra los servicios reales y `mock` sin backend, con los datos en
-`localStorage` (`sorteo360.mock.state.v3`).
+`localStorage` (`sorteo360.mock.state.v4`).
 
 ## Reglas
 

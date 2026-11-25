@@ -5,13 +5,13 @@ namespace Sorteo360.Events.Core.Raffles;
 /// único del sorteo que se guarda antes de arrancar, y se aplica en cada cálculo, así que la gente
 /// que sigue llegando no cambia nada de lo que un operador decidió.
 /// <para>
-/// La identidad es el correo normalizado, igual que la del asistente. No se borra al arrancar ni
+/// La identidad es la <see cref="PersonIdentity"/> del asistente, igual que la del asistente. No se borra al arrancar ni
 /// cuando pierde: una inclusión escrita antes de que el CRM vetara a la persona sigue ahí, y el
 /// cálculo dice qué la venció.
 /// </para>
 /// </summary>
 public sealed record AttendeeOverride(
-    string EmailNormalized,
+    string IdentityKey,
     string Decision,
     string? Note,
     Guid DecidedById,

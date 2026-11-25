@@ -55,6 +55,18 @@
   events first: the chassis circuit is one per destination, so tripping it on mailability also
   fails the OPT check every event create makes.
 
+- **Bulk exclusion is `RaffleService.BulkExcludeAsync`** (spec 01 §4.2): the pure decision is
+  `BulkExclusion.Classify`, unit-tested. It reads the door **once** for the whole batch (live, like
+  `SetOverrideAsync`), resolves emails and IDs against the target roster in one query
+  (`IRaffleRepository.FindRosterPeopleAsync`), and writes with `UpsertOverridesAsync`: one `unnest`
+  statement under the draft lock, all or nothing. The source raffle is found through
+  `IEventRepository.GetByIdAsync`, which filters by account, so another account's event is a 404.
+- **Identity is `identity_key`, not the email** (`PersonIdentity.KeyFor`): the normalised email, or
+  `id:` + the trimmed, lower-cased employee ID. `raffle_participant.email_normalized` is nullable;
+  a roster row with neither is rejected as `missing_email_and_id` in the import result. Old rows
+  with neither carry `legacy:{row id}` from migration `RemoveSyntheticEmails`. Nothing invents an
+  email any more: a winner without one ends in `no_recipient`, and the badge prints no address.
+
 - **A handover hangs off the draw, never the prize** (`prize_handover`, spec 03 §3). The repository
   loads each draw's handovers into `PrizeDraw.Handovers`, so `PrizeState` (`undrawn`/`drawn`/`redeemed`)
   and `PrizeDrawStatus` (`drawn`/`redeemed`/`voided`, per draw) are both derived from the draws alone.

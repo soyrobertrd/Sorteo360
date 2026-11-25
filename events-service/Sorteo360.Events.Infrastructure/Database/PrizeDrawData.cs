@@ -11,7 +11,7 @@ internal sealed class PrizeDrawData
     public Guid WinnerAttendeeId { get; set; }
     public string WinnerName { get; set; } = string.Empty;
     public string? WinnerCompany { get; set; }
-    public string WinnerEmail { get; set; } = string.Empty;
+    public string WinnerIdentityKey { get; set; } = string.Empty;
     public DateTimeOffset DrawnAt { get; set; }
     public Guid DrawnById { get; set; }
     public int EligiblePoolSize { get; set; }

@@ -199,7 +199,8 @@ public sealed class RaffleParticipantWebhookEndpoints : IEndpoint
             res.Imported,
             res.Updated,
             res.Total,
-            res.Participants.Select(p => MapToDto(p, context)).ToList()));
+            res.Participants.Select(p => MapToDto(p, context)).ToList(),
+            res.Rejected ?? []));
     }
 
     private static async Task<IResult> CheckInParticipant(
@@ -287,7 +288,7 @@ public sealed class RaffleParticipantWebhookEndpoints : IEndpoint
             || string.Equals(p.Id.ToString(), norm, StringComparison.OrdinalIgnoreCase)
             || (!string.IsNullOrWhiteSpace(p.EmployeeCode)
                 && string.Equals(p.EmployeeCode.Trim(), norm, StringComparison.OrdinalIgnoreCase))
-            || string.Equals(p.EmailNormalized, norm.ToLowerInvariant(), StringComparison.Ordinal));
+            || string.Equals(p.Email, norm.ToLowerInvariant(), StringComparison.Ordinal));
 
         if (match is null)
             return new BaseError("Participante no encontrado.", "REGISTRATION_NOT_FOUND", ErrorKind.NotFound).ToProblem();
@@ -435,7 +436,8 @@ public sealed class RaffleParticipantWebhookEndpoints : IEndpoint
                 res.Imported,
                 res.Updated,
                 res.Total,
-                res.Participants.Select(p => MapToDto(p, context)).ToList()));
+                res.Participants.Select(p => MapToDto(p, context)).ToList(),
+                res.Rejected ?? []));
         }
     }
 
@@ -575,15 +577,15 @@ public sealed class RaffleParticipantWebhookEndpoints : IEndpoint
             if (overridesResult.IsSuccess)
             {
                 overrides = overridesResult.Value.ToDictionary(
-                    o => o.EmailNormalized,
+                    o => o.IdentityKey,
                     o => o.Decision,
                     StringComparer.Ordinal);
             }
         }
 
         var liveDraws = (withRounds?.Draws ?? []).Where(d => d.IsLive).ToList();
-        var winnerEmails = liveDraws
-            .Select(d => d.WinnerEmail.Trim().ToLowerInvariant())
+        var winnerKeys = liveDraws
+            .Select(d => d.WinnerIdentityKey.Trim().ToLowerInvariant())
             .ToHashSet(StringComparer.Ordinal);
 
         var winnerCompanyKeys = liveDraws
@@ -592,14 +594,14 @@ public sealed class RaffleParticipantWebhookEndpoints : IEndpoint
             .Select(k => k.Value)
             .ToHashSet(StringComparer.Ordinal);
 
-        return new RaffleParticipantContext(withRounds, overrides, winnerEmails, winnerCompanyKeys);
+        return new RaffleParticipantContext(withRounds, overrides, winnerKeys, winnerCompanyKeys);
     }
 
     internal static RaffleParticipantDto MapToDto(
         RaffleParticipant participant,
         RaffleParticipantContext context)
     {
-        context.Overrides.TryGetValue(participant.EmailNormalized, out var manualDecision);
+        context.Overrides.TryGetValue(participant.IdentityKey, out var manualDecision);
         var exclusionReason = ResolveExclusionReason(participant, manualDecision, context);
 
         var qualified = manualDecision switch
@@ -615,7 +617,8 @@ public sealed class RaffleParticipantWebhookEndpoints : IEndpoint
             FullName = participant.FullName,
             FirstName = participant.FirstName,
             LastName = participant.LastName,
-            Email = participant.EmailNormalized,
+            Email = participant.Email,
+            IdentityKey = participant.IdentityKey,
             Company = participant.Company,
             Department = participant.Department,
             Location = participant.Location,
@@ -647,7 +650,7 @@ public sealed class RaffleParticipantWebhookEndpoints : IEndpoint
             return "not_checked_in";
 
         if ((raffle?.OnePrizePerPerson ?? true)
-            && context.LiveWinnerEmails.Contains(participant.EmailNormalized))
+            && context.LiveWinnerIdentityKeys.Contains(participant.IdentityKey))
         {
             return "already_won";
         }
@@ -689,7 +692,7 @@ public sealed class RaffleParticipantWebhookEndpoints : IEndpoint
     internal sealed record RaffleParticipantContext(
         RaffleWithRounds? RaffleWithRounds,
         IReadOnlyDictionary<string, string> Overrides,
-        IReadOnlySet<string> LiveWinnerEmails,
+        IReadOnlySet<string> LiveWinnerIdentityKeys,
         IReadOnlySet<string> LiveWinnerCompanyKeys);
 
     private static async Task<IResult?> EnforceParticipantPlanLimitAsync(
@@ -715,7 +718,8 @@ public sealed class RaffleParticipantWebhookEndpoints : IEndpoint
             .Select(p => p.EmployeeCode!.Trim())
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var existingEmails = existing
-            .Select(p => p.EmailNormalized)
+            .Where(p => p.Email is not null)
+            .Select(p => p.Email!)
             .ToHashSet(StringComparer.Ordinal);
 
         var netNew = 0;
@@ -903,7 +907,11 @@ public sealed class RaffleParticipantDto
     public required string FullName { get; init; }
     public string? FirstName { get; init; }
     public string? LastName { get; init; }
-    public required string Email { get; init; }
+    /// <summary>Nulo si la persona entró solo con su ID.</summary>
+    public string? Email { get; init; }
+
+    /// <summary>La clave interna de la persona en el evento: con ella se la excluye o incluye a mano.</summary>
+    public required string IdentityKey { get; init; }
     public string? Company { get; init; }
     public string? Department { get; init; }
     public string? Location { get; init; }
@@ -923,7 +931,8 @@ public sealed record ImportRaffleParticipantsHttpResponse(
     int Imported,
     int Updated,
     int Total,
-    IReadOnlyList<RaffleParticipantDto> Participants);
+    IReadOnlyList<RaffleParticipantDto> Participants,
+    IReadOnlyList<RaffleParticipantImportRejection> Rejected);
 
 public sealed record RaffleAuditEntryHttpResponse(
     Guid DrawId,

@@ -8,7 +8,7 @@ internal sealed class RaffleAttendeeData
 {
     public Guid Id { get; set; }
     public Guid RaffleId { get; set; }
-    public string EmailNormalized { get; set; } = string.Empty;
+    public string IdentityKey { get; set; } = string.Empty;
     public Guid? ContactId { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;

@@ -161,7 +161,25 @@ public interface IRaffleRepository
     /// Borra la decisión manual sobre ese correo. No hacer nada si no había es un éxito. Con el mismo
     /// bloqueo y la misma comprobación de draft que la escritura.
     /// </summary>
-    Task<UnitResult<BaseError>> DeleteOverrideAsync(Guid raffleId, string emailNormalized, CancellationToken cancellationToken);
+    Task<UnitResult<BaseError>> DeleteOverrideAsync(Guid raffleId, string identityKey, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Escribe varias decisiones manuales en una sola sentencia y una transacción: todas o ninguna.
+    /// Mismo bloqueo y misma comprobación de draft que <see cref="UpsertOverrideAsync"/>. Las claves
+    /// llegan sin repetir.
+    /// </summary>
+    Task<UnitResult<BaseError>> UpsertOverridesAsync(Guid raffleId, IReadOnlyList<AttendeeOverride> overrides, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Las personas del padrón del evento con alguno de esos correos, IDs (ya en minúsculas) o
+    /// claves, en una sola consulta. No filtra por cuenta: quien llama ya validó el evento.
+    /// </summary>
+    Task<Result<IReadOnlyList<RosterPerson>, BaseError>> FindRosterPeopleAsync(
+        Guid eventId,
+        IReadOnlyCollection<string> emails,
+        IReadOnlyCollection<string> employeeIds,
+        IReadOnlyCollection<string> identityKeys,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Arranca el sorteo en una transacción bajo el bloqueo de su fila: relee el sorteo y sus

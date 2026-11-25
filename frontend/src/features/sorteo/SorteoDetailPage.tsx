@@ -20,6 +20,7 @@ import {
   PackageCheck,
   Undo2,
   QrCode,
+  UserMinus,
 } from 'lucide-react'
 import { Tabs } from '@/components/ui/Tabs'
 import { ApiError } from '@/api'
@@ -88,6 +89,7 @@ import { ImportarPremiosModal } from './components/ImportarPremiosModal'
 import { ConfigurarRondaModal } from './components/ConfigurarRondaModal'
 import { IniciarSorteoModal } from './components/IniciarSorteoModal'
 import { ParticipantesTable } from './components/ParticipantesTable'
+import { ExcluirEnLoteModal } from './components/ExcluirEnLoteModal'
 import { RevertirEntregaModal } from './components/RevertirEntregaModal'
 import { VoidDrawModal } from './components/VoidDrawModal'
 import { descargarBlob } from '@/lib/download'
@@ -111,6 +113,7 @@ export function SorteoDetailPage() {
   const { data: sorteo, isLoading, error } = useRaffle(eventId)
   const { data: evento } = useEvento(eventId)
   const canWrite = useCan(ROLES.rafflesWrite)
+  const [excluirEnLote, setExcluirEnLote] = useState(false)
   const canDraw = useCan(ROLES.rafflesDraw)
   const updateRaffle = useUpdateRaffle(eventId)
   const saveRound = useSaveRaffleRound(eventId)
@@ -444,7 +447,7 @@ export function SorteoDetailPage() {
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">
                   {branding.companyName}
                 </p>
-                <h1 className="truncate text-2xl font-black tracking-tight sm:text-3xl">
+                <h1 className="line-clamp-2 text-xl font-black leading-tight tracking-tight [overflow-wrap:anywhere] sm:truncate sm:text-3xl">
                   {nombreEvento}
                 </h1>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-white/80">
@@ -571,12 +574,12 @@ export function SorteoDetailPage() {
         </div>
 
         {/* Indicadores: el avance de la noche de un vistazo */}
-        <dl className="grid grid-cols-2 divide-slate-100 lg:grid-cols-4 lg:divide-x dark:divide-slate-800">
-          <div className="col-span-2 p-5 lg:col-span-1">
-            <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <dl className="grid grid-cols-3 divide-slate-100 lg:grid-cols-4 lg:divide-x dark:divide-slate-800">
+          <div className="col-span-3 p-4 sm:p-5 lg:col-span-1">
+            <dt className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:tracking-wider">
               Premios sorteados
             </dt>
-            <dd className="mt-1 text-2xl font-black text-foreground">
+            <dd className="mt-1 text-xl font-black sm:text-2xl text-foreground">
               {premiosSorteados}
               <span className="text-base font-bold text-muted-foreground"> / {totalPremios}</span>
             </dd>
@@ -594,36 +597,38 @@ export function SorteoDetailPage() {
               />
             </div>
           </div>
-          <div className="p-5">
-            <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="min-w-0 p-4 sm:p-5">
+            <dt className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:tracking-wider">
               Participantes
             </dt>
-            <dd className="mt-1 text-2xl font-black text-foreground">{totalParticipantes}</dd>
+            <dd className="mt-1 text-xl font-black sm:text-2xl text-foreground">
+              {totalParticipantes}
+            </dd>
             <p className="text-xs text-muted-foreground">
               {sinPuerta(sorteo) ? 'Todos participan' : `${conCheckIn} con check-in`}
             </p>
           </div>
           <div
-            className="p-5"
+            className="min-w-0 p-4 sm:p-5"
             title={
               nextPrize
                 ? `Para el próximo premio por sortear: ${nextPrize.name}`
                 : 'Solo con el sorteo en curso y un premio por sortear.'
             }
           >
-            <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <dt className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:tracking-wider">
               En la tómbola
             </dt>
-            <dd className="mt-1 text-2xl font-black text-brand dark:text-brand-accent">
+            <dd className="mt-1 text-xl font-black sm:text-2xl text-brand dark:text-brand-accent">
               {nextPrize && nextPrizePool ? nextPrizePool.count : '—'}
             </dd>
             <p className="text-xs text-muted-foreground">para el próximo premio</p>
           </div>
-          <div className="p-5">
-            <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="min-w-0 p-4 sm:p-5">
+            <dt className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground sm:text-[11px] sm:tracking-wider">
               Entregados
             </dt>
-            <dd className="mt-1 text-2xl font-black text-emerald-600 dark:text-emerald-400">
+            <dd className="mt-1 text-xl font-black sm:text-2xl text-emerald-600 dark:text-emerald-400">
               {premiosEntregados}
             </dd>
             <p className="text-xs text-muted-foreground">de {ganadores.length} ganadores</p>
@@ -671,7 +676,7 @@ export function SorteoDetailPage() {
           {/* Tab 1: Rondas & Premios */}
           {activeTab === 'premios' && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                     Rondas y premios
@@ -813,7 +818,35 @@ export function SorteoDetailPage() {
           )}
 
           {/* Tab 2: Participantes */}
-          {activeTab === 'participantes' && <ParticipantesTable raffle={sorteo} />}
+          {activeTab === 'participantes' && (
+            <div className="space-y-3">
+              {canWrite.allowed && (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={sorteo.state !== 'draft'}
+                    title={
+                      sorteo.state !== 'draft'
+                        ? 'El bombo ya está congelado: solo se excluye en lote con el sorteo en borrador.'
+                        : undefined
+                    }
+                    onClick={() => setExcluirEnLote(true)}
+                  >
+                    <UserMinus className="mr-1 h-4 w-4" /> Excluir en lote
+                  </Button>
+                </div>
+              )}
+              <ParticipantesTable raffle={sorteo} />
+              {excluirEnLote && (
+                <ExcluirEnLoteModal
+                  eventId={sorteo.eventId}
+                  onClose={() => setExcluirEnLote(false)}
+                />
+              )}
+            </div>
+          )}
 
           {/* Tab 3: Ganadores */}
           {activeTab === 'ganadores' && (

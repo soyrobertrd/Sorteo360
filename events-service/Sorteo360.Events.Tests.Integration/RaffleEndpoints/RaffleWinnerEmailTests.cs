@@ -78,7 +78,7 @@ public sealed class RaffleWinnerEmailTests : IClassFixture<RaffleCompletionApiDb
         send.GetProperty("type").GetString().ShouldBe("events.prize.won");
         send.GetProperty("language").GetString().ShouldBe("es");
         var recipient = send.GetProperty("recipients").EnumerateArray().ShouldHaveSingleItem();
-        recipient.GetProperty("email").GetString().ShouldBe(draw.WinnerEmail);
+        recipient.GetProperty("email").GetString().ShouldBe(draw.WinnerIdentityKey);
         recipient.GetProperty("name").GetString().ShouldBe(draw.WinnerName);
         send.GetProperty("about").EnumerateArray()
             .Select(a => (a.GetProperty("entityType").GetString(), a.GetProperty("entityId").GetString()))

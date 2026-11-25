@@ -29,19 +29,20 @@ export function PortalHeader() {
     <header className="w-full bg-transparent transition-colors">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Marca y Versión (Izquierda) */}
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <img
             src={branding.logoUrl}
             alt={branding.organizationName}
-            className="h-8 w-auto object-contain dark:hidden"
+            className="h-8 w-auto max-w-[45vw] object-contain dark:hidden"
           />
           <img
             src={branding.logoDarkUrl}
             alt={branding.organizationName}
-            className="hidden h-8 w-auto object-contain dark:block"
+            className="hidden h-8 w-auto max-w-[45vw] object-contain dark:block"
           />
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700" />
-          <div className="flex items-center gap-2">
+          {/* En el teléfono el logo basta: el nombre chocaba con los controles de la derecha. */}
+          <div className="hidden h-6 w-px bg-slate-200 sm:block dark:bg-slate-700" />
+          <div className="hidden items-center gap-2 sm:flex">
             <span className="font-sans text-xl font-bold tracking-tight text-slate-900 dark:text-white">
               {branding.appName}
             </span>

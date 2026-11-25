@@ -17,7 +17,7 @@ namespace Sorteo360.Events.Core.Raffles;
 /// </summary>
 public sealed record RaffleAttendee(
     Guid Id,
-    string EmailNormalized,
+    string IdentityKey,
     Guid? ContactId,
     string FirstName,
     string LastName,
@@ -38,6 +38,9 @@ public sealed record RaffleAttendee(
     /// falta alguno.
     /// </summary>
     public string DisplayName => $"{FirstName} {LastName}".Trim();
+
+    /// <summary>El correo de la persona, o nulo si entró solo con su ID.</summary>
+    public string? Email => PersonIdentity.EmailOf(IdentityKey);
 
     /// <summary>
     /// Verdadero si el participante tiene algún sorteo anulado que no ha sido cubierto por una
@@ -97,7 +100,7 @@ public sealed record RaffleAttendee(
         var manual = classified.Override;
         return new RaffleAttendee(
             Guid.NewGuid(),
-            attendee.EmailNormalized,
+            attendee.IdentityKey,
             attendee.ContactId,
             attendee.FirstName,
             attendee.LastName,

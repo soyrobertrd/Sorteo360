@@ -17,7 +17,7 @@ public sealed class BatchDrawAndBoardTests
             WinnerAttendeeId: Guid.NewGuid(),
             WinnerName: "Ana Pérez",
             WinnerCompany: "Banreservas",
-            WinnerEmail: "ana@banreservas.com",
+            WinnerIdentityKey: "ana@banreservas.com",
             DrawnAt: now,
             DrawnById: Guid.NewGuid(),
             EligiblePoolSize: 250,
@@ -48,7 +48,7 @@ public sealed class BatchDrawAndBoardTests
         var attendees = Enumerable.Range(1, 150)
             .Select(i => new RaffleAttendee(
                 Id: Guid.NewGuid(),
-                EmailNormalized: $"user{i}@example.com",
+                IdentityKey: $"user{i}@example.com",
                 ContactId: null,
                 FirstName: "User",
                 LastName: i.ToString(),

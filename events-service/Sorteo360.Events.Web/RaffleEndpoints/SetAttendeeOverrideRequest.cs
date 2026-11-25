@@ -8,6 +8,9 @@ public record SetAttendeeOverrideRequest
 {
     public string? Email { get; init; }
 
+    /// <summary>La clave de la persona (<c>identityKey</c> del padrón). Para quien no tiene correo; manda sobre <see cref="Email"/>.</summary>
+    public string? IdentityKey { get; init; }
+
     /// <summary><c>included</c> o <c>excluded</c>.</summary>
     public string? Decision { get; init; }
 

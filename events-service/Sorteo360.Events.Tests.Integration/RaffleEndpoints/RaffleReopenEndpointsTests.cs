@@ -36,8 +36,8 @@ public sealed class RaffleReopenEndpointsTests : IClassFixture<RaffleAttendanceA
         var eventId = await _api.CreateEventWithRaffleAsync();
         var door = FakeAttendanceSource.Invitees(3);
         _factory.Attendance.SetDoor(eventId, door);
-        _factory.Awards.SetInForce(door.Select(a => a.EmailNormalized).ToArray());
-        (await _api.SetOverrideAsync(eventId, door[0].EmailNormalized, AttendeeOverrideDecision.Excluded, "Personal"))
+        _factory.Awards.SetInForce(door.Select(a => a.IdentityKey).ToArray());
+        (await _api.SetOverrideAsync(eventId, door[0].IdentityKey, AttendeeOverrideDecision.Excluded, "Personal"))
             .StatusCode.ShouldBe(HttpStatusCode.NoContent);
         (await _api.StartAsync(eventId)).StatusCode.ShouldBe(HttpStatusCode.OK);
         var startedStored = await _api.GetStoredRaffleAsync(eventId);
@@ -54,7 +54,7 @@ public sealed class RaffleReopenEndpointsTests : IClassFixture<RaffleAttendanceA
         (await _api.GetStoredRaffleAsync(eventId)).ShouldBe(new StoredRaffle(RaffleState.Draft, null, null, null));
         (await _api.GetStoredAttendeesAsync(eventId)).ShouldBeEmpty();
         var kept = (await _api.GetStoredOverridesAsync(eventId)).ShouldHaveSingleItem();
-        kept.Email.ShouldBe(door[0].EmailNormalized);
+        kept.Email.ShouldBe(door[0].IdentityKey);
         kept.Note.ShouldBe("Personal");
     }
 

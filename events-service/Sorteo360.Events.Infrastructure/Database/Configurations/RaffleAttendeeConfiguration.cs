@@ -41,8 +41,8 @@ internal sealed class RaffleAttendeeConfiguration : IEntityTypeConfiguration<Raf
             .HasColumnName("raffle_id")
             .IsRequired();
 
-        builder.Property(a => a.EmailNormalized)
-            .HasColumnName("email_normalized")
+        builder.Property(a => a.IdentityKey)
+            .HasColumnName("identity_key")
             .IsRequired();
 
         builder.Property(a => a.ContactId)
@@ -99,9 +99,9 @@ internal sealed class RaffleAttendeeConfiguration : IEntityTypeConfiguration<Raf
             .HasConstraintName("fk_raffle_attendee_raffle")
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Una fila por persona y sorteo: la identidad es el correo, igual que en la puerta.
-        builder.HasIndex(a => new { a.RaffleId, a.EmailNormalized })
-            .HasDatabaseName("ux_raffle_attendee_raffle_email")
+        // Una fila por persona y sorteo: la identidad es la identity_key, igual que en la puerta.
+        builder.HasIndex(a => new { a.RaffleId, a.IdentityKey })
+            .HasDatabaseName("ux_raffle_attendee_raffle_identity_key")
             .IsUnique();
     }
 }
