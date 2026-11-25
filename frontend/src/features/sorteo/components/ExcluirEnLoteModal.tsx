@@ -10,7 +10,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ErrorNote } from '@/components/ui/Feedback'
 import { Tabs } from '@/components/ui/Tabs'
 import { formatDate } from '@/lib/format'
-import { useBulkExcludeAttendees, useRaffleList } from '../hooks'
+import { useAllRaffles, useBulkExcludeAttendees } from '../hooks'
 import {
   identificadoresDeMatriz,
   textoAMatriz,
@@ -25,7 +25,8 @@ type Fuente = 'sorteo' | 'archivo'
  */
 export function ExcluirEnLoteModal({ eventId, onClose }: { eventId: string; onClose: () => void }) {
   const excluir = useBulkExcludeAttendees(eventId)
-  const { data: sorteos } = useRaffleList()
+  // Todas las páginas: con más de 100 sorteos, los de páginas siguientes también son origen.
+  const { data: sorteos, isLoading: cargandoSorteos } = useAllRaffles()
   const [fuente, setFuente] = useState<Fuente>('sorteo')
   const [sourceEventId, setSourceEventId] = useState('')
   const [archivo, setArchivo] = useState<{
@@ -38,7 +39,7 @@ export function ExcluirEnLoteModal({ eventId, onClose }: { eventId: string; onCl
   const [resultado, setResultado] = useState<BulkExcludeAttendeesResponse | null>(null)
 
   const otros = useMemo(
-    () => (sorteos?.items ?? []).filter((s) => s.eventId !== eventId),
+    () => (sorteos ?? []).filter((s) => s.eventId !== eventId),
     [sorteos, eventId],
   )
   const elegido = otros.find((s) => s.eventId === sourceEventId)
@@ -115,7 +116,7 @@ export function ExcluirEnLoteModal({ eventId, onClose }: { eventId: string; onCl
               onChange={(e) => setSourceEventId(e.target.value)}
               className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 font-normal dark:border-slate-700 dark:bg-slate-900"
             >
-              <option value="">Elija un sorteo…</option>
+              <option value="">{cargandoSorteos ? 'Cargando sorteos…' : 'Elija un sorteo…'}</option>
               {otros.map((s) => (
                 <option key={s.eventId} value={s.eventId}>
                   {s.eventName} · {formatDate(s.eventStartDate)} · {s.drawnCount} ganador(es)
