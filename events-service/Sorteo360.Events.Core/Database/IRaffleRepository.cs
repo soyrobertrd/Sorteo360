@@ -225,6 +225,19 @@ public interface IRaffleRepository
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Las claves de persona con un premio vivo en los sorteos vinculados a <paramref name="raffle"/>
+    /// (mismo grupo, sin él). Lectura sin bloqueo, para el bombo que se muestra; el giro la repite
+    /// bajo el bloqueo del grupo.
+    /// </summary>
+    Task<Result<IReadOnlySet<string>, BaseError>> ListLinkedWinnerKeysAsync(Raffle raffle, CancellationToken cancellationToken);
+
+    /// <summary>Los nombres de los eventos de los sorteos vinculados a <paramref name="raffle"/>.</summary>
+    Task<Result<IReadOnlyList<string>, BaseError>> ListLinkedRaffleNamesAsync(Raffle raffle, CancellationToken cancellationToken);
+
+    /// <summary>Si algún sorteo de la cuenta está vinculado al evento <paramref name="eventId"/>.</summary>
+    Task<Result<bool, BaseError>> HasRafflesLinkedToAsync(Guid eventId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Sortea hasta 10 premios en una sola transacción y una sola lectura bajo el bloqueo del sorteo (A33/R13).
     /// Si el bombo se agota a mitad del lote, persiste los sorteados hasta ese punto y devuelve el error
     /// <see cref="PoolExhaustedError"/> junto con los sorteos completados.

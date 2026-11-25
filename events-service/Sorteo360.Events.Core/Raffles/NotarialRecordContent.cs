@@ -53,6 +53,9 @@ public sealed record NotarialRecordContent(
     /// <summary>Participantes reactivados tras una anulación para volver al bombo.</summary>
     public IReadOnlyList<NotarialRecordReinstatement> Reinstatements { get; init; } = [];
 
+    /// <summary>Los sorteos vinculados: quien tenía un premio vivo en uno de ellos no entró al bombo.</summary>
+    public IReadOnlyList<string> LinkedRaffleNames { get; init; } = [];
+
     /// <summary>
     /// El número del acta: los primeros ocho dígitos hexadecimales del id del sorteo, en mayúsculas.
     /// Los ids son aleatorios, así que cualquier prefijo lo es.
@@ -109,6 +112,7 @@ public sealed record NotarialRecordContent(
             AnnexOf(facts.Attendees))
         {
             Reinstatements = ReinstatementsOf(facts.Attendees, withRounds.Draws, operatorNames),
+            LinkedRaffleNames = facts.LinkedRaffleNames,
         };
     }
 

@@ -545,7 +545,8 @@ public sealed class RaffleEndpoints : IEndpoint
             BoardTitle: string.IsNullOrWhiteSpace(request.BoardTitle) ? null : request.BoardTitle.Trim(),
             BoardSubtitle: string.IsNullOrWhiteSpace(request.BoardSubtitle) ? null : request.BoardSubtitle.Trim(),
             BoardIdentifier: string.IsNullOrWhiteSpace(request.BoardIdentifier) ? null : request.BoardIdentifier.Trim(),
-            BoardBatchSize: request.BoardBatchSize);
+            BoardBatchSize: request.BoardBatchSize,
+            LinkedEventId: request.LinkedEventId);
     }
 }
 

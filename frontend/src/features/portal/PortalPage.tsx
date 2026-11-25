@@ -80,8 +80,8 @@ function ModuleCard({
         </p>
       </div>
 
-      {/* Enlace de acción */}
-      <div>
+      {/* Acción: un botón bajo una línea divisoria */}
+      <div className="border-t border-slate-200 pt-4 dark:border-slate-800">
         {comingSoon ? (
           <span className="inline-flex items-center gap-2 font-sans text-xs font-bold text-slate-400 sm:text-sm cursor-not-allowed">
             <span>En desarrollo</span>
@@ -89,9 +89,9 @@ function ModuleCard({
         ) : (
           <Link
             to={to}
-            className="inline-flex items-center gap-2 font-sans text-xs font-bold text-slate-900 sm:text-sm transition-colors group-hover:text-brand-deep dark:text-white dark:group-hover:text-blue-400"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-deep px-4 py-2 font-sans text-xs font-bold text-white shadow-sm transition-colors hover:bg-brand-deep/90 sm:text-sm dark:bg-blue-600 dark:hover:bg-blue-700"
           >
-            <span>Acceder al módulo</span>
+            <span>Acceder</span>
             <ArrowRight
               size={16}
               className="stroke-[2.5] transition-transform duration-200 group-hover:translate-x-1"

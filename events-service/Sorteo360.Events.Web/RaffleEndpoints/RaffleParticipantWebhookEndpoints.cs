@@ -594,7 +594,15 @@ public sealed class RaffleParticipantWebhookEndpoints : IEndpoint
             .Select(k => k.Value)
             .ToHashSet(StringComparer.Ordinal);
 
-        return new RaffleParticipantContext(withRounds, overrides, winnerKeys, winnerCompanyKeys);
+        IReadOnlySet<string> linkedWinnerKeys = new HashSet<string>(StringComparer.Ordinal);
+        if (withRounds is not null)
+        {
+            var linkedResult = await raffles.ListLinkedWinnerKeysAsync(withRounds.Raffle, cancellationToken);
+            if (linkedResult.IsSuccess)
+                linkedWinnerKeys = linkedResult.Value;
+        }
+
+        return new RaffleParticipantContext(withRounds, overrides, winnerKeys, winnerCompanyKeys, linkedWinnerKeys);
     }
 
     internal static RaffleParticipantDto MapToDto(
@@ -655,6 +663,10 @@ public sealed class RaffleParticipantWebhookEndpoints : IEndpoint
             return "already_won";
         }
 
+        // Ganó en un sorteo vinculado (mismo evento): tampoco entra a este bombo.
+        if (context.LinkedWinnerIdentityKeys?.Contains(participant.IdentityKey) == true)
+            return "won_in_linked_raffle";
+
         if (raffle?.OnePrizePerCompany ?? false)
         {
             var participantKey = CompanyKey.Normalize(participant.RuleGroup);
@@ -693,7 +705,8 @@ public sealed class RaffleParticipantWebhookEndpoints : IEndpoint
         RaffleWithRounds? RaffleWithRounds,
         IReadOnlyDictionary<string, string> Overrides,
         IReadOnlySet<string> LiveWinnerIdentityKeys,
-        IReadOnlySet<string> LiveWinnerCompanyKeys);
+        IReadOnlySet<string> LiveWinnerCompanyKeys,
+        IReadOnlySet<string>? LinkedWinnerIdentityKeys = null);
 
     private static async Task<IResult?> EnforceParticipantPlanLimitAsync(
         Guid eventId,

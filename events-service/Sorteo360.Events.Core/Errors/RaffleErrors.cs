@@ -17,6 +17,15 @@ public static class RaffleErrors
         "RAFFLE_ALREADY_EXISTS",
         ErrorKind.Conflict);
 
+    /// <summary>
+    /// El vínculo pedido no vale: el propio evento, un evento que no existe en la cuenta, o un sorteo
+    /// que ya es el ancla de otros (no hay cadenas de vínculos).
+    /// </summary>
+    public static BaseError LinkInvalid(string message) => new(
+        message,
+        "RAFFLE_LINK_INVALID",
+        ErrorKind.Conflict);
+
     /// <summary>El evento existe pero todavía no tiene sorteo.</summary>
     public static BaseError NotFound() => new(
         "El evento no tiene sorteo.",

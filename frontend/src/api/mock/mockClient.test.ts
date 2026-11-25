@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ApiError } from '../client'
 import type { CreateEventoRequest, MontajeEvento, UpdateEventoRequest } from '../types'
 import { MockApiClient } from './mockClient'
+import { toUpdateRaffleRequest } from '@/features/sorteo/raffleRequest'
 
 // ev-0002: un evento sembrado en planificación, así que admite corregir su ciudad.
 const EVENTO_SEMBRADO = 'ev-0002'
@@ -110,4 +111,45 @@ describe('MockApiClient, el PATCH del evento reemplaza lo editable (ADR-0009)', 
       expect((await api.getEvento(EVENTO_SEMBRADO))[campo]).toBeNull()
     },
   )
+})
+
+describe('MockApiClient, sorteos vinculados', () => {
+  async function sorteoNuevo(api: MockApiClient, name: string): Promise<string> {
+    const id = await api.createEvento({
+      type: 'Corporate',
+      name,
+      startDate: '2026-12-01',
+      endDate: '2026-12-01',
+      language: 'es',
+      city: 'Santo Domingo',
+      country: 'República Dominicana',
+      timeZone: 'America/Santo_Domingo',
+    })
+    await api.createRaffle(id)
+    return id
+  }
+
+  async function vincular(api: MockApiClient, eventId: string, linkedEventId: string | null) {
+    const raffle = await api.getRaffle(eventId)
+    await api.updateRaffle(eventId, { ...toUpdateRaffleRequest(raffle, {}), linkedEventId })
+  }
+
+  it('vincularse a un sorteo vinculado lleva al evento de su grupo, y el ancla no se vincula', async () => {
+    const api = new MockApiClient()
+    const segundo = await sorteoNuevo(api, 'Segundo sorteo')
+    const tercero = await sorteoNuevo(api, 'Tercer sorteo')
+    await vincular(api, segundo, 'ev-0001')
+
+    await vincular(api, tercero, segundo)
+
+    expect((await api.getRaffle(tercero)).linkedEventId).toBe('ev-0001')
+    // ev-0001 es el ancla de los otros dos: no se vincula a un sorteo de otro grupo.
+    const aparte = await sorteoNuevo(api, 'Sorteo aparte')
+    await expect(vincular(api, 'ev-0001', aparte)).rejects.toMatchObject({
+      code: 'RAFFLE_LINK_INVALID',
+    })
+    await expect(vincular(api, segundo, segundo)).rejects.toMatchObject({
+      code: 'RAFFLE_LINK_INVALID',
+    })
+  })
 })

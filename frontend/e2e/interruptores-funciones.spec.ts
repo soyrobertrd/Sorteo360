@@ -25,7 +25,7 @@ test('quien administra apaga el Historial de Ganadores y desaparece de Rifas en 
 }) => {
   await abrir(page, '/app')
   await page
-    .getByRole('link', { name: 'Acceder al módulo' })
+    .getByRole('link', { name: 'Acceder', exact: true })
     .and(page.locator('[href="/admin"]'))
     .click()
   await expect(page).toHaveURL(/\/admin$/)

@@ -28,7 +28,11 @@ import { CerrarConvocatoriaDialog } from './components/CerrarConvocatoriaDialog'
 import { sendCancellationNotice, type CancellationNoticeOutcome } from './cancellationNotice'
 import { EventoFormModal } from './components/EventoFormModal'
 import { GestionEventoArea } from './components/GestionEventoArea'
-import { useConvocatoriaLanzada, useEventTracking } from '@/features/convocatorias/tracking'
+import {
+  useConvocatoriaLanzada,
+  useConvocatoriasDisponible,
+  useEventTracking,
+} from '@/features/convocatorias/tracking'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { Button } from '@/components/ui/Button'
 import { ActionMenu } from '@/components/ui/ActionMenu'
@@ -50,14 +54,19 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 export function EventoDetailPage() {
   const { id = '' } = useParams()
   const { data: evento, isLoading, error } = useEvento(id)
-  const [activeTab, setActiveTab] = useState<'convocatorias' | 'audit'>('convocatorias')
+  const conConvocatorias = useConvocatoriasDisponible()
+  const [tabElegida, setActiveTab] = useState<'convocatorias' | 'audit'>('convocatorias')
+  // Sin Invitaciones no hay convocatorias que mostrar: la pestaña no existe.
+  const activeTab = conConvocatorias ? tabElegida : 'audit'
 
   if (isLoading) return <Spinner label="Cargando detalles del evento..." />
   if (error != null) return <ErrorNote error={error} />
   if (!evento) return null
 
   const tabsItems = [
-    { key: 'convocatorias' as const, label: 'Convocatorias & registro' },
+    ...(conConvocatorias
+      ? [{ key: 'convocatorias' as const, label: 'Convocatorias & registro' }]
+      : []),
     { key: 'audit' as const, label: 'Bitácora' },
   ]
 

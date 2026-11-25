@@ -16,4 +16,5 @@ public sealed record RaffleListItem(
     int DrawnCount,
     int RedeemedCount,
     DateTimeOffset? StartedAt,
-    DateTimeOffset? CompletedAt);
+    DateTimeOffset? CompletedAt,
+    Guid? LinkedEventId = null);

@@ -222,6 +222,20 @@ internal sealed class RaffleConfiguration : IEntityTypeConfiguration<RaffleData>
             .HasConstraintName("fk_raffle_event")
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Property(r => r.LinkedEventId)
+            .HasColumnName("linked_event_id");
+
+        // Sorteos vinculados: el evento al que pertenecen. Restrict: un evento con sorteos vinculados
+        // no se borra por debajo de ellos.
+        builder.HasOne<EventData>()
+            .WithMany()
+            .HasForeignKey(r => r.LinkedEventId)
+            .HasConstraintName("fk_raffle_linked_event")
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(r => r.LinkedEventId)
+            .HasDatabaseName("ix_raffle_linked_event_id");
+
         // A lo sumo un sorteo por evento. Es este índice el que lo garantiza, no el código.
         builder.HasIndex(r => r.EventId)
             .HasDatabaseName("ux_raffle_event_id")

@@ -188,6 +188,7 @@ export type ApiErrorCode =
   | 'RAFFLE_BULK_EXCLUDE_SOURCE_REQUIRED'
   | 'RAFFLE_BULK_EXCLUDE_TOO_MANY'
   | 'RAFFLE_BULK_EXCLUDE_SAME_EVENT'
+  | 'RAFFLE_LINK_INVALID'
   | 'RAFFLE_DISPLAY_FIELDS_INVALID'
   | 'RAFFLE_NOT_IN_PROGRESS'
   | 'RAFFLE_ATTENDEE_NOT_VOIDED'
@@ -1703,6 +1704,11 @@ export interface RaffleResponse {
   requiresCheckIn?: boolean
   onePrizePerPerson: boolean
   onePrizePerCompany: boolean
+  /**
+   * Sorteos vinculados: el evento al que pertenece este sorteo. Los sorteos del mismo grupo (este
+   * evento, o el propio evento sin vínculo) no repiten ganadores. Nulo sin vínculo.
+   */
+  linkedEventId?: string | null
   notaryName: string | null
   notaryIdentityDocument: string | null
   witnessOneName: string | null
@@ -1772,6 +1778,8 @@ export interface UpdateRaffleRequest {
   requiresCheckIn: boolean
   onePrizePerPerson: boolean
   onePrizePerCompany: boolean
+  /** Nulo u omitido desvincula: el PATCH reemplaza todo (ADR-0009). */
+  linkedEventId?: string | null
   notaryName: string | null
   notaryIdentityDocument: string | null
   witnessOneName: string | null
@@ -1841,6 +1849,8 @@ export interface RaffleListItem {
   redeemedCount: number
   startedAt: string | null
   completedAt: string | null
+  /** El evento al que está vinculado (sorteos vinculados). */
+  linkedEventId?: string | null
 }
 
 export interface RaffleTotals {
@@ -1867,6 +1877,8 @@ export type RaffleExclusionReason =
   | 'manually_excluded'
   | 'not_awards_member'
   | 'dominican_domain'
+  /** Tiene un premio vivo en un sorteo vinculado (mismo evento): no entra a este bombo. */
+  | 'won_in_linked_raffle'
 
 export type AttendeeOverrideDecision = 'included' | 'excluded'
 
@@ -2015,6 +2027,8 @@ export interface PoolExhaustedCounts {
   excludedByVoid: number
   excludedByPerson: number
   excludedByCompany: number
+  /** Fuera por tener un premio vivo en un sorteo vinculado. Opcional hasta que el servicio lo sirva. */
+  excludedByLinkedRaffle?: number
 }
 
 /** Solo paginación: ni el listado de sorteos ni el de ganadores filtran. Tope 100. */
@@ -2068,6 +2082,8 @@ export interface RaffleParticipantItem {
   source: 'convocatoria' | 'excel' | 'csv' | 'txt' | 'manual' | 'api' | 'webhook'
   qualified: boolean
   override: AttendeeOverrideDecision | null
+  /** Por qué no entra hoy, calculado por el servicio en cada lectura. Solo se usa `won_in_linked_raffle`. */
+  exclusionReason?: string | null
 }
 
 export interface ImportRaffleParticipantsResponse {

@@ -20,6 +20,7 @@ public sealed record PoolExhaustedError : BaseError
     public int ExcludedByVoid { get; init; }
     public int ExcludedByPerson { get; init; }
     public int ExcludedByCompany { get; init; }
+    public int ExcludedByLinkedRaffle { get; init; }
     public IReadOnlyList<object>? Drawn { get; init; }
 
     public PoolExhaustedError(EligiblePool pool, IReadOnlyList<object>? drawn = null)
@@ -34,6 +35,7 @@ public sealed record PoolExhaustedError : BaseError
         ExcludedByVoid = pool.ExcludedByVoid;
         ExcludedByPerson = pool.ExcludedByPerson;
         ExcludedByCompany = pool.ExcludedByCompany;
+        ExcludedByLinkedRaffle = pool.ExcludedByLinkedRaffle;
         Drawn = drawn;
     }
 
@@ -47,6 +49,7 @@ public sealed record PoolExhaustedError : BaseError
                 ["excludedByVoid"] = ExcludedByVoid,
                 ["excludedByPerson"] = ExcludedByPerson,
                 ["excludedByCompany"] = ExcludedByCompany,
+                ["excludedByLinkedRaffle"] = ExcludedByLinkedRaffle,
             };
             if (Drawn is not null)
                 dict["drawn"] = Drawn;

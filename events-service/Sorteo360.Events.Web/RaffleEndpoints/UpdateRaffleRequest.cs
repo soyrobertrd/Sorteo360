@@ -15,6 +15,12 @@ public record UpdateRaffleRequest
     public bool? OnePrizePerPerson { get; init; }
     public bool? OnePrizePerCompany { get; init; }
     public bool? OnePrizePerDepartmentPerRound { get; init; }
+
+    /// <summary>
+    /// El evento al que se vincula el sorteo (sorteos vinculados: no repiten ganadores). Omitido o nulo
+    /// lo desvincula, como todo campo de este PATCH (ADR-0009).
+    /// </summary>
+    public Guid? LinkedEventId { get; init; }
     public string? BoardTitle { get; init; }
     public string? BoardSubtitle { get; init; }
     public string? BoardIdentifier { get; init; }

@@ -27,6 +27,7 @@ export function liveHandover(draw: PrizeDrawSummary): PrizeHandoverSummary | und
 
 /** Los motivos que ninguna decisión manual vence: la fila no ofrece moverla (spec raffles/01 §10). */
 export const UNOVERRIDABLE_EXCLUSIONS: readonly RaffleExclusionReason[] = [
+  'won_in_linked_raffle',
   'walk_in',
   'contact_unresolved',
   'suspended',

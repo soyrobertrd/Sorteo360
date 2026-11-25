@@ -13,6 +13,38 @@ public sealed class EligiblePoolTests
     private static readonly Guid PrizeP = Guid.NewGuid();
     private static readonly Guid PrizeQ = Guid.NewGuid();
 
+    #region Sorteos vinculados
+
+    [Fact]
+    public void For_LeavesOutWhoWonInALinkedRaffle_AndCountsThemApart()
+    {
+        var maria = Attendee("María");
+        var juan = Attendee("Juan");
+        var tagged = RaffleAttendee.TagLinkedWinners(
+            [maria, juan], new HashSet<string>([maria.IdentityKey], StringComparer.Ordinal));
+
+        var pool = EligiblePool.For(tagged, [], onePrizePerCompany: false);
+
+        pool.Members.ShouldHaveSingleItem().Id.ShouldBe(juan.Id);
+        pool.ExcludedByLinkedRaffle.ShouldBe(1);
+        pool.ExcludedByPerson.ShouldBe(0);
+    }
+
+    [Fact]
+    public void For_CountsAWinnerHereAsExcludedByPerson_EvenIfAlsoWonInALinkedRaffle()
+    {
+        var maria = Attendee("María");
+        var tagged = RaffleAttendee.TagLinkedWinners(
+            [maria], new HashSet<string>([maria.IdentityKey], StringComparer.Ordinal));
+
+        var pool = EligiblePool.For(tagged, [LiveDraw(PrizeP, maria)], onePrizePerCompany: false);
+
+        pool.ExcludedByPerson.ShouldBe(1);
+        pool.ExcludedByLinkedRaffle.ShouldBe(0);
+    }
+
+    #endregion
+
     #region The three lines
 
     [Theory]

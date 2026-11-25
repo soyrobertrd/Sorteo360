@@ -637,7 +637,11 @@ function SorteoEjecucionClasica() {
                 <p>
                   De {poolCounts.participants} calificados, quedan fuera {poolCounts.excludedByVoid}{' '}
                   por una anulación, {poolCounts.excludedByPerson} por haber ganado ya y{' '}
-                  {poolCounts.excludedByCompany} por la empresa de un ganador.
+                  {poolCounts.excludedByCompany} por la empresa de un ganador
+                  {poolCounts.excludedByLinkedRaffle
+                    ? ` y ${poolCounts.excludedByLinkedRaffle} por haber ganado en un sorteo vinculado`
+                    : ''}
+                  .
                 </p>
               )}
             </div>

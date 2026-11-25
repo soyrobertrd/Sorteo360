@@ -143,10 +143,11 @@ export function useTemplates(selectable?: boolean) {
   })
 }
 
-export function useCampaigns(params: ListCampaignsParams) {
+export function useCampaigns(params: ListCampaignsParams, enabled = true) {
   return useQuery({
     queryKey: campaignKeys.list(params),
     queryFn: () => api.listCampaigns(params),
+    enabled,
   })
 }
 

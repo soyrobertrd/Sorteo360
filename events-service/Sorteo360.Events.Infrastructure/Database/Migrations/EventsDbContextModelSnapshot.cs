@@ -1131,6 +1131,10 @@ namespace Sorteo360.Events.Infrastructure.Database.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("event_id");
 
+                    b.Property<Guid?>("LinkedEventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("linked_event_id");
+
                     b.Property<string>("NotaryIdentityDocument")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
@@ -1225,6 +1229,9 @@ namespace Sorteo360.Events.Infrastructure.Database.Migrations
                     b.HasIndex("EventId")
                         .IsUnique()
                         .HasDatabaseName("ux_raffle_event_id");
+
+                    b.HasIndex("LinkedEventId")
+                        .HasDatabaseName("ix_raffle_linked_event_id");
 
                     b.ToTable("raffle", "events", t =>
                         {
@@ -1759,6 +1766,12 @@ namespace Sorteo360.Events.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_raffle_event");
+
+                    b.HasOne("Sorteo360.Events.Infrastructure.Database.EventData", null)
+                        .WithMany()
+                        .HasForeignKey("LinkedEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_raffle_linked_event");
                 });
 
             modelBuilder.Entity("Sorteo360.Events.Infrastructure.Database.RaffleParticipantData", b =>

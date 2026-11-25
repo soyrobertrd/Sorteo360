@@ -15,6 +15,7 @@ internal sealed class RaffleData
     public bool RequiresCheckIn { get; set; } = true;
     public bool OnePrizePerPerson { get; set; }
     public bool OnePrizePerCompany { get; set; }
+    public Guid? LinkedEventId { get; set; }
     public string? BoardTitle { get; set; }
     public string? BoardSubtitle { get; set; }
     public string? BoardIdentifier { get; set; }

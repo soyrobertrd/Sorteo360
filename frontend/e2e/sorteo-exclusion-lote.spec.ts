@@ -15,6 +15,9 @@ test('excluye en el borrador a los ganadores vivos de otro sorteo y avisa a qui�
   await page.getByLabel('Nombre completo').fill('David Miller')
   await page.getByLabel('Correo electrónico').fill('david.miller@libertytravel.com')
   await page.getByRole('button', { name: 'Agregar Participante' }).click()
+  await expect(page.getByText('Participante "David Miller" agregado')).toBeVisible()
+  // La tabla va por páginas: se busca para tenerlo en la primera.
+  await page.getByLabel('Buscar participantes').fill('David Miller')
   const fila = page.getByRole('row').filter({ hasText: 'David Miller' })
   await expect(fila.getByText('Califica')).toBeVisible()
 

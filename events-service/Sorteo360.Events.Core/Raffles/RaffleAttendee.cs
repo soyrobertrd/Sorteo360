@@ -39,8 +39,8 @@ public sealed record RaffleAttendee(
     /// guarda: se calcula en cada lectura del bombo (y bajo el bloqueo del grupo al girar).
     /// </summary>
     /// <remarks>
-    /// shortcut: el cruce es por <see cref="IdentityKey"/> (correo, o ID si no hay correo); una persona
-    /// cargada con correo en un padrón y solo con ID en otro no se reconoce. Cruzar también por ID si pasa.
+    /// Las claves ya vienen cruzadas también por ID de empleado (el repositorio las arma), así que
+    /// acá basta mirar la clave.
     /// </remarks>
     public static IReadOnlyList<RaffleAttendee> TagLinkedWinners(
         IReadOnlyList<RaffleAttendee> attendees, IReadOnlySet<string> linkedWinnerKeys)

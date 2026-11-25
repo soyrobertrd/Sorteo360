@@ -19,6 +19,7 @@ import {
   UserPlus,
   Users,
   Webhook,
+  Shuffle,
   Copy,
   Pencil,
   Ticket,
@@ -41,6 +42,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState, ErrorNote } from '@/components/ui/Feedback'
 import { Field, TextInput } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Modal'
+import { Pagination } from '@/components/ui/Pagination'
+import { PasarNoGanadoresModal } from './PasarNoGanadoresModal'
 import { BadgesGeneratorModal } from '@/features/convocatorias/components/BadgesGeneratorModal'
 import type { Invitado } from '@/features/convocatorias/mockParticipants'
 import { useEvento } from '@/features/eventos/hooks'
@@ -69,7 +72,8 @@ import { ConexionApiWebhookModal } from './ConexionApiWebhookModal'
 import { DoorListStatus } from './DoorListStatus'
 
 /** Filas que se dibujan de una vez; el resto, a pedido. */
-const FILAS_POR_TANDA = 200
+/** Filas por página: con 25.000 participantes la tabla nunca dibuja más de esto. */
+const FILAS_POR_PAGINA = 50
 
 type FilterTab = 'todos' | 'calificados' | 'pendientes' | 'excluidos'
 
@@ -104,7 +108,26 @@ function splitFullName(fullName: string): { firstName: string; lastName: string 
   }
 }
 
+/**
+ * Quien ganó en un sorteo vinculado no entra al bombo aunque califique: el servicio lo dice en el
+ * padrón y la fila lo muestra como excluido, con o sin la lista congelada.
+ */
+function conVinculado(
+  row: UnifiedParticipantRow,
+  p: RaffleParticipantItem | undefined,
+): UnifiedParticipantRow {
+  if (p?.exclusionReason !== 'won_in_linked_raffle' || row.manualDecision === 'excluded') return row
+  return { ...row, qualified: false, exclusionReason: 'won_in_linked_raffle' }
+}
+
 function toUnifiedFromParticipant(
+  p: RaffleParticipantItem,
+  att?: RaffleAttendeeResponse,
+): UnifiedParticipantRow {
+  return conVinculado(filaDeParticipante(p, att), p)
+}
+
+function filaDeParticipante(
   p: RaffleParticipantItem,
   att?: RaffleAttendeeResponse,
 ): UnifiedParticipantRow {
@@ -155,6 +178,14 @@ function toUnifiedFromAttendee(
   p?: RaffleParticipantItem,
 ): UnifiedParticipantRow {
   const attName = `${att.firstName} ${att.lastName}`.trim() || att.email || 'Participante'
+  return conVinculado(filaDeAsistente(att, attName, p), p)
+}
+
+function filaDeAsistente(
+  att: RaffleAttendeeResponse,
+  attName: string,
+  p?: RaffleParticipantItem,
+): UnifiedParticipantRow {
   return {
     key: `a-${att.identityKey}`,
     participantId: p?.id ?? null,
@@ -219,9 +250,9 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
   const [search, setSearch] = useState('')
   const [masAbierto, setMasAbierto] = useState(false)
   const masRef = useRef<HTMLButtonElement>(null)
-  // Con 25.000 filas, escribir no espera al filtro y la tabla dibuja por tandas.
+  // Con 25.000 filas, escribir no espera al filtro y la tabla dibuja por páginas.
   const busqueda = useDeferredValue(search)
-  const [visibles, setVisibles] = useState(FILAS_POR_TANDA)
+  const [pagina, setPagina] = useState(1)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [actionError, setActionError] = useState<unknown>(null)
 
@@ -230,6 +261,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showScannerModal, setShowScannerModal] = useState(false)
   const [showBadgesModal, setShowBadgesModal] = useState(false)
+  const [showPasarModal, setShowPasarModal] = useState(false)
   const [editTarget, setEditTarget] = useState<UnifiedParticipantRow | null>(null)
   const copiar = (texto: string, que: string) =>
     navigator.clipboard
@@ -362,6 +394,14 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
     })
   }, [unifiedRows, filterTab, busqueda, textoDeBusqueda])
 
+  const paginas = Math.max(1, Math.ceil(filteredRows.length / FILAS_POR_PAGINA))
+  // Un filtro o una baja pueden dejar la página fuera de rango: se queda en la última.
+  const paginaActual = Math.min(pagina, paginas)
+  const filasDePagina = filteredRows.slice(
+    (paginaActual - 1) * FILAS_POR_PAGINA,
+    paginaActual * FILAS_POR_PAGINA,
+  )
+
   const badgeInvitados = useMemo<Invitado[]>(
     () =>
       unifiedRows.map((row) => ({
@@ -458,7 +498,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
                   aria-selected={active}
                   onClick={() => {
                     setFilterTab(key)
-                    setVisibles(FILAS_POR_TANDA)
+                    setPagina(1)
                   }}
                   className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
                     active
@@ -490,7 +530,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
               aria-label="Buscar participantes"
               onChange={(e) => {
                 setSearch(e.target.value)
-                setVisibles(FILAS_POR_TANDA)
+                setPagina(1)
               }}
               placeholder="Nombre, correo, área, código…"
               className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand/30 dark:border-slate-700 dark:bg-card dark:text-slate-100"
@@ -588,6 +628,17 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
             >
               <IdCard className="h-3.5 w-3.5" /> Gafetes con QR (PDF)
             </MenuItem>
+            {canWrite.allowed && (
+              <MenuItem
+                disabled={(participantsQuery.data ?? []).length === 0}
+                onClick={() => {
+                  setMasAbierto(false)
+                  setShowPasarModal(true)
+                }}
+              >
+                <Shuffle className="h-3.5 w-3.5" /> Pasar no ganadores a otro sorteo
+              </MenuItem>
+            )}
           </ActionMenu>
         </div>
       </div>
@@ -655,7 +706,7 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
                   </td>
                 </tr>
               ) : (
-                filteredRows.slice(0, visibles).map((row) => {
+                filasDePagina.map((row) => {
                   const unoverridable =
                     row.exclusionReason !== null &&
                     UNOVERRIDABLE_EXCLUSIONS.includes(row.exclusionReason)
@@ -864,22 +915,14 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
             </tbody>
           </table>
         </div>
-        {filteredRows.length > visibles && (
-          <div className="flex flex-wrap items-center justify-center gap-3 border-t border-slate-100 px-4 py-3 text-xs text-slate-500 dark:border-slate-800">
-            <span>
-              Mostrando {visibles.toLocaleString('es-DO')} de{' '}
-              {filteredRows.length.toLocaleString('es-DO')}. Usa la búsqueda para ir directo a
-              alguien.
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setVisibles((n) => n + FILAS_POR_TANDA)}
-            >
-              Mostrar {Math.min(FILAS_POR_TANDA, filteredRows.length - visibles)} más
-            </Button>
-          </div>
+        {filteredRows.length > 0 && (
+          <Pagination
+            page={paginaActual}
+            pageCount={paginas}
+            onPageChange={setPagina}
+            total={filteredRows.length}
+            className="border-t border-slate-100 px-4 py-3 dark:border-slate-800"
+          />
         )}
       </div>
 
@@ -959,6 +1002,14 @@ export function ParticipantesTable({ raffle }: { raffle: RaffleResponse }) {
             setQrModalRow((prev) => (prev ? { ...prev, checkedIn: !prev.checkedIn } : null))
           }}
           onClose={() => setQrModalRow(null)}
+        />
+      )}
+
+      {showPasarModal && (
+        <PasarNoGanadoresModal
+          raffle={raffle}
+          participantes={participantsQuery.data ?? []}
+          onClose={() => setShowPasarModal(false)}
         />
       )}
 

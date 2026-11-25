@@ -1,6 +1,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api'
 import { useCan } from '@/auth/AuthProvider'
+import { useFeatureSwitches } from '@/features/admin/hooks'
 import { ROLES } from '@/auth/roles'
 import { publicEventoKeys } from '@/features/publico/hooks'
 import type { CampaignResponse } from '@/api/types'
@@ -16,9 +17,19 @@ export const isLaunched = (campaign: CampaignResponse) => Boolean(campaign.launc
 
 export const trackingKey = (eventId: string) => ['campaigns', 'tracking', eventId] as const
 
+/**
+ * Si se puede leer de convocatorias-service: el rol y el interruptor del módulo. Con Invitaciones
+ * apagado el servicio puede ni estar desplegado (perfil sin `convocatorias`), y cada lectura daría 502.
+ */
+export function useConvocatoriasDisponible(): boolean {
+  const { allowed } = useCan(ROLES.convocatoriasRead)
+  const { isEnabled } = useFeatureSwitches()
+  return allowed && isEnabled('convocatorias')
+}
+
 /** Si el evento tiene al menos una campaña lanzada. `undefined` mientras carga. */
 export function useConvocatoriaLanzada(eventId: string): boolean | undefined {
-  const { data } = useCampaigns({ eventId, pageSize: 100 })
+  const { data } = useCampaigns({ eventId, pageSize: 100 }, useConvocatoriasDisponible())
   return data ? data.items.some(isLaunched) : undefined
 }
 
@@ -27,7 +38,7 @@ export function useConvocatoriaLanzada(eventId: string): boolean | undefined {
  * las páginas. Un evento que no aparece no tiene ninguna.
  */
 export function useCampanasPorEvento() {
-  const { allowed: canRead } = useCan(ROLES.convocatoriasRead)
+  const canRead = useConvocatoriasDisponible()
   return useQuery({
     queryKey: ['campaigns', 'list', 'count-by-event'],
     queryFn: async () => {
@@ -50,7 +61,7 @@ export function useCampanasPorEvento() {
 }
 
 export function useEventTracking(eventId: string) {
-  const { allowed: canRead } = useCan(ROLES.convocatoriasRead)
+  const canRead = useConvocatoriasDisponible()
   return useQuery({
     queryKey: trackingKey(eventId),
     queryFn: () => api.getEventTracking(eventId),
@@ -77,7 +88,7 @@ export function useToggleRegistrations(eventId: string) {
 
 /** Un resumen por evento, en paralelo. */
 export function useEventTrackings(eventIds: string[]) {
-  const { allowed: canRead } = useCan(ROLES.convocatoriasRead)
+  const canRead = useConvocatoriasDisponible()
   return useQueries({
     queries: eventIds.map((eventId) => ({
       queryKey: trackingKey(eventId),

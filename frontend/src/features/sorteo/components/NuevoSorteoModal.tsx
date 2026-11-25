@@ -11,7 +11,7 @@ import { useEventosList } from '@/features/eventos/hooks'
 import { useFeatureSwitches } from '@/features/admin/hooks'
 import { setRaffleBranding, useBranding } from '@/lib/branding'
 import { formatDate } from '@/lib/format'
-import { raffleKeys, useCreateRaffle, useRaffleList } from '../hooks'
+import { raffleKeys, useAllRaffles, useCreateRaffle, useRaffleList } from '../hooks'
 import { EmpresaAnfitriona } from './EmpresaAnfitriona'
 
 interface NuevoSorteoModalProps {
@@ -29,6 +29,9 @@ export function NuevoSorteoModal({ onClose, onCreated }: NuevoSorteoModalProps) 
   const { data: eventosData } = useEventosList({ page: 1, pageSize: 100 }, conEventos)
   const { data: rafflesData } = useRaffleList()
   const createRaffle = useCreateRaffle()
+  const { data: todosLosSorteos } = useAllRaffles()
+  // Sorteos vinculados: el nuevo no repite ganadores con el elegido ni con los de su grupo.
+  const [vincularCon, setVincularCon] = useState('')
 
   const eventosDisponibles = useMemo(() => {
     const conSorteo = new Set((rafflesData?.items ?? []).map((r) => r.eventId))
@@ -65,7 +68,22 @@ export function NuevoSorteoModal({ onClose, onCreated }: NuevoSorteoModalProps) 
           logoUrl: companyLogoUrl.trim() || undefined,
         })
       }
-      createRaffle.mutate(eventoId, { onSuccess: () => onCreated(eventoId) })
+      setSubmitting(true)
+      try {
+        await createRaffle.mutateAsync(eventoId)
+        if (vincularCon) {
+          const creado = await api.getRaffle(eventoId)
+          await api.updateRaffle(
+            eventoId,
+            toUpdateRaffleRequest(creado, { linkedEventId: vincularCon }),
+          )
+        }
+        onCreated(eventoId)
+      } catch (err) {
+        setSubmitError(err)
+      } finally {
+        setSubmitting(false)
+      }
       return
     }
 
@@ -100,7 +118,10 @@ export function NuevoSorteoModal({ onClose, onCreated }: NuevoSorteoModalProps) 
       const creado = await api.getRaffle(createdEventId)
       await api.updateRaffle(
         createdEventId,
-        toUpdateRaffleRequest(creado, { requiresCheckIn: false }),
+        toUpdateRaffleRequest(creado, {
+          requiresCheckIn: false,
+          linkedEventId: vincularCon || null,
+        }),
       )
 
       setRaffleBranding(createdEventId, {
@@ -231,6 +252,25 @@ export function NuevoSorteoModal({ onClose, onCreated }: NuevoSorteoModalProps) 
             )}
           </div>
         )}
+
+        <Field
+          label="Vincular con otro sorteo (opcional)"
+          hint="Los sorteos vinculados no repiten ganadores: quien gane en uno no entra a los demás."
+        >
+          <select
+            aria-label="Vincular con otro sorteo"
+            value={vincularCon}
+            onChange={(e) => setVincularCon(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          >
+            <option value="">Sin vincular</option>
+            {(todosLosSorteos ?? []).map((s) => (
+              <option key={s.eventId} value={s.eventId}>
+                {s.eventName} · {formatDate(s.eventStartDate)}
+              </option>
+            ))}
+          </select>
+        </Field>
 
         <EmpresaAnfitriona
           nombre={companyName}

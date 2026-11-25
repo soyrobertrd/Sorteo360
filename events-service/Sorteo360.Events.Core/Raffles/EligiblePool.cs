@@ -14,12 +14,14 @@ namespace Sorteo360.Events.Core.Raffles;
 /// <param name="ExcludedByVoid">Fuera por una anulación propia en cualquier premio del sorteo, con cualquier motivo.</param>
 /// <param name="ExcludedByPerson">Fuera por tener ya un premio vivo, con la regla de un premio por persona.</param>
 /// <param name="ExcludedByCompany">Fuera porque su empresa ya tiene un premio vivo, con la regla de uno por empresa.</param>
+/// <param name="ExcludedByLinkedRaffle">Fuera por tener un premio vivo en un sorteo vinculado.</param>
 public sealed record EligiblePool(
     IReadOnlyList<RaffleAttendee> Members,
     int Participants,
     int ExcludedByVoid,
     int ExcludedByPerson,
-    int ExcludedByCompany)
+    int ExcludedByCompany,
+    int ExcludedByLinkedRaffle = 0)
 {
     public int Count => Members.Count;
 
@@ -64,7 +66,7 @@ public sealed record EligiblePool(
         }
 
         var members = new List<RaffleAttendee>(attendees.Count);
-        int participants = 0, byVoid = 0, byPerson = 0, byCompany = 0;
+        int participants = 0, byVoid = 0, byPerson = 0, byCompany = 0, byLinked = 0;
 
         foreach (var attendee in attendees)
         {
@@ -80,6 +82,8 @@ public sealed record EligiblePool(
                 byVoid++;
             else if (liveWinners.Contains(attendee.Id))
                 byPerson++;
+            else if (attendee.WonInLinkedRaffle)
+                byLinked++;
             else if (liveCompanies is not null && CompanyKey.Normalize(attendee.Company) is { HasValue: true } company && liveCompanies.Contains(company.Value))
                 byCompany++;
             else
@@ -87,6 +91,6 @@ public sealed record EligiblePool(
         }
 
         members.Sort((a, b) => a.Id.CompareTo(b.Id));
-        return new EligiblePool(members, participants, byVoid, byPerson, byCompany);
+        return new EligiblePool(members, participants, byVoid, byPerson, byCompany, byLinked);
     }
 }

@@ -514,11 +514,53 @@ public sealed class RaffleService : IRaffleService
         if (!EventStatus.Active.Contains(statusResult.Value))
             return UnitResult.Failure(QuoteErrors.EventNoEditable());
 
-        var updateResult = loadResult.Value.Update(dto, _clock.GetUtcNow());
+        var linkResult = await ResolveLinkAsync(loadResult.Value, dto.LinkedEventId, cancellationToken);
+        if (linkResult.IsFailure)
+            return UnitResult.Failure(linkResult.Error);
+
+        var updateResult = loadResult.Value.Update(dto with { LinkedEventId = linkResult.Value }, _clock.GetUtcNow());
         if (updateResult.IsFailure)
             return UnitResult.Failure(updateResult.Error);
 
         return await _repository.UpdateAsync(updateResult.Value, cancellationToken);
+    }
+
+    /// <summary>
+    /// El evento al que queda vinculado el sorteo. Vincularse a un sorteo que ya está vinculado lleva
+    /// al evento de su grupo: no hay cadenas. No vale el propio evento, uno que la cuenta no ve, ni
+    /// vincular un sorteo que ya es el ancla de otros (sus vinculados quedarían sueltos).
+    /// </summary>
+    private async Task<Result<Guid?, BaseError>> ResolveLinkAsync(
+        Raffle raffle, Guid? target, CancellationToken cancellationToken)
+    {
+        if (target is not { } requested || requested == raffle.LinkedEventId)
+            return Result.Success<Guid?, BaseError>(target);
+
+        if (requested == raffle.EventId)
+            return Result.Failure<Guid?, BaseError>(RaffleErrors.LinkInvalid("Un sorteo no se vincula a su propio evento."));
+
+        // El repositorio de eventos filtra por cuenta: un evento ajeno no existe.
+        var targetEvent = await _eventRepository.GetByIdAsync(requested, cancellationToken);
+        if (targetEvent.IsFailure)
+            return Result.Failure<Guid?, BaseError>(targetEvent.Error);
+        if (targetEvent.Value.HasNoValue)
+            return Result.Failure<Guid?, BaseError>(RaffleErrors.LinkInvalid("El evento elegido no existe."));
+
+        var targetRaffle = await _repository.GetByEventIdAsync(requested, cancellationToken);
+        if (targetRaffle.IsFailure)
+            return Result.Failure<Guid?, BaseError>(targetRaffle.Error);
+        var group = targetRaffle.Value.HasValue && targetRaffle.Value.Value.LinkedEventId is { } anchor ? anchor : requested;
+        if (group == raffle.EventId)
+            return Result.Success<Guid?, BaseError>(null);
+
+        var isAnchor = await _repository.HasRafflesLinkedToAsync(raffle.EventId, cancellationToken);
+        if (isAnchor.IsFailure)
+            return Result.Failure<Guid?, BaseError>(isAnchor.Error);
+        if (isAnchor.Value)
+            return Result.Failure<Guid?, BaseError>(RaffleErrors.LinkInvalid(
+                "Otros sorteos están vinculados a este. Vincule los otros al evento nuevo, o desvincúlelos primero."));
+
+        return Result.Success<Guid?, BaseError>(group);
     }
 
     public async Task<UnitResult<BaseError>> SetCertificateSignersAsync(
@@ -1481,7 +1523,14 @@ public sealed class RaffleService : IRaffleService
         if (attendees.IsFailure)
             return Result.Failure<EligiblePool, BaseError>(attendees.Error);
 
-        return EligiblePool.For(attendees.Value, withRounds.Draws, raffle.OnePrizePerCompany);
+        var linkedWinners = await _repository.ListLinkedWinnerKeysAsync(raffle, cancellationToken);
+        if (linkedWinners.IsFailure)
+            return Result.Failure<EligiblePool, BaseError>(linkedWinners.Error);
+
+        return EligiblePool.For(
+            RaffleAttendee.TagLinkedWinners(attendees.Value, linkedWinners.Value),
+            withRounds.Draws,
+            raffle.OnePrizePerCompany);
     }
 
     public async Task<Result<RaffleDetail, BaseError>> ReinstateAttendeeAsync(

@@ -13,6 +13,9 @@ public sealed record NotarialRecordFacts(
     IReadOnlyList<RaffleAttendee> Attendees,
     NotarialRecordEvent Event)
 {
+    /// <summary>Los sorteos vinculados al cerrar, por el nombre de su evento: el acta dice de cuáles no se repitieron ganadores.</summary>
+    public IReadOnlyList<string> LinkedRaffleNames { get; init; } = [];
+
     /// <summary>
     /// Cada operador que el acta nombra, una vez: quien tomó una decisión manual (spec 03 §4.4 paso
     /// 4). Nadie más, porque cada id es una llamada al realm con la fila del sorteo bloqueada.

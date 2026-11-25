@@ -23,6 +23,7 @@ import {
   UserMinus,
 } from 'lucide-react'
 import { Tabs } from '@/components/ui/Tabs'
+import { Pagination } from '@/components/ui/Pagination'
 import { ApiError } from '@/api'
 import type {
   PrizeDrawSummary,
@@ -47,7 +48,6 @@ import {
   prizeDrawVoidCodeLabel,
   prizeStateLabel,
   raffleBlockingReasonLabel,
-  winnerNotificationStatusLabel,
 } from '@/lib/labels'
 import {
   useCreatePrizes,
@@ -84,6 +84,7 @@ import { rutaProyector } from './proyeccion'
 import { ViewModeToggle, type ViewMode } from '@/components/ui/ViewModeToggle'
 import { ConfigurarPremiosModal } from './components/ConfigurarPremiosModal'
 import { CamposVisiblesCard } from './components/CamposVisiblesCard'
+import { SorteosVinculadosCard } from './components/SorteosVinculadosCard'
 import { PRINCIPALES, SIMULACION, useCargarSimulacion } from './simulacion'
 import { ImportarPremiosModal } from './components/ImportarPremiosModal'
 import { ConfigurarRondaModal } from './components/ConfigurarRondaModal'
@@ -100,6 +101,8 @@ const menuItemClass =
   'w-full flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
 
 const PESTANAS = ['premios', 'participantes', 'ganadores', 'reglas'] as const
+
+const GANADORES_POR_PAGINA = 50
 type Pestana = (typeof PESTANAS)[number]
 
 /** La pestaña viene en `?tab=`, así el historial puede enlazar directo a los ganadores. */
@@ -159,6 +162,7 @@ export function SorteoDetailPage() {
   } | null>(null)
   const [showEscaner, setShowEscaner] = useState(false)
   const [menuDrawId, setMenuDrawId] = useState<string | null>(null)
+  const [paginaGanadores, setPaginaGanadores] = useState(1)
   const [revirtiendo, setRevirtiendo] = useState<{
     prize: PrizeResponse
     draw: PrizeDrawSummary
@@ -254,6 +258,12 @@ export function SorteoDetailPage() {
   })
   // Vivos y anulados: una anulación no borra nada, queda en el historial del premio
   const prizeDraws = premios.flatMap((premio) => premio.draws.map((draw) => ({ premio, draw })))
+  const paginasGanadores = Math.max(1, Math.ceil(prizeDraws.length / GANADORES_POR_PAGINA))
+  const paginaGanadoresActual = Math.min(paginaGanadores, paginasGanadores)
+  const ganadoresDePagina = prizeDraws.slice(
+    (paginaGanadoresActual - 1) * GANADORES_POR_PAGINA,
+    paginaGanadoresActual * GANADORES_POR_PAGINA,
+  )
   const voidTitle = !canDraw.allowed
     ? canDraw.title
     : 'Anular este ganador: el premio vuelve a quedar por sortear'
@@ -862,8 +872,8 @@ export function SorteoDetailPage() {
                       <th className="px-4 py-3">Ronda</th>
                       <th className="px-4 py-3">Fecha y Hora</th>
                       <th className="px-4 py-3">Estado Entrega</th>
-                      <th className="px-4 py-3">Correo</th>
-                      <th className="px-4 py-3 text-right">Acción</th>
+                      <th className="px-4 py-3">Código / ID</th>
+                      <th className="px-4 py-3 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -874,7 +884,7 @@ export function SorteoDetailPage() {
                         </td>
                       </tr>
                     ) : (
-                      prizeDraws.map(({ premio, draw }) => {
+                      ganadoresDePagina.map(({ premio, draw }) => {
                         const ronda = sorteo.rounds.find((r) => r.id === premio.roundId)
                         const entrega = draw.void === null ? liveHandover(draw) : undefined
                         const voidable =
@@ -939,28 +949,10 @@ export function SorteoDetailPage() {
                                 </span>
                               )}
                             </td>
-                            {/* El correo sale al completar, uno por ganador vivo (spec raffles/03 §5.1) */}
-                            <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
-                              {draw.void
-                                ? '—'
-                                : draw.winnerNotificationStatus
-                                  ? winnerNotificationStatusLabel[draw.winnerNotificationStatus]
-                                  : sorteo.state === 'in_progress'
-                                    ? 'Se envía al completar'
-                                    : '—'}
+                            <td className="px-4 py-3 font-mono text-slate-600 dark:text-slate-400">
+                              {draw.winnerEmployeeCode || draw.winnerTicketNumber || '—'}
                             </td>
                             <td className="px-4 py-3 text-right whitespace-nowrap">
-                              {voidable && (
-                                <button
-                                  type="button"
-                                  disabled={!canDraw.allowed}
-                                  onClick={() => setVoiding({ prize: premio, draw })}
-                                  className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                  title={voidTitle}
-                                >
-                                  <Ban className="w-4 h-4" />
-                                </button>
-                              )}
                               {draw.void === null && (
                                 <div className="relative inline-block text-left">
                                   <button
@@ -969,7 +961,7 @@ export function SorteoDetailPage() {
                                       setMenuDrawId(menuDrawId === draw.id ? null : draw.id)
                                     }
                                     className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                                    title="Entrega y certificado"
+                                    title="Acciones"
                                     aria-label={`Acciones de ${draw.winnerName}`}
                                   >
                                     <MoreVertical className="w-4 h-4" />
@@ -981,6 +973,21 @@ export function SorteoDetailPage() {
                                         onClick={() => setMenuDrawId(null)}
                                       />
                                       <div className="absolute right-0 mt-1 w-52 rounded-xl bg-white dark:bg-card shadow-2xl border border-slate-200 dark:border-slate-800 py-1.5 z-30 text-left">
+                                        {voidable && (
+                                          <button
+                                            type="button"
+                                            disabled={!canDraw.allowed}
+                                            title={voidTitle}
+                                            onClick={() => {
+                                              setMenuDrawId(null)
+                                              setVoiding({ prize: premio, draw })
+                                            }}
+                                            className={menuItemClass}
+                                          >
+                                            <Ban className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                                            Anular ganador
+                                          </button>
+                                        )}
                                         {entrega ? (
                                           <button
                                             type="button"
@@ -1041,6 +1048,15 @@ export function SorteoDetailPage() {
                     )}
                   </tbody>
                 </table>
+                {prizeDraws.length > 0 && (
+                  <Pagination
+                    page={paginaGanadoresActual}
+                    pageCount={paginasGanadores}
+                    onPageChange={setPaginaGanadores}
+                    total={prizeDraws.length}
+                    className="border-t border-slate-100 px-4 py-3 dark:border-slate-800"
+                  />
+                )}
               </div>
             </div>
           )}
@@ -1055,6 +1071,12 @@ export function SorteoDetailPage() {
                 sorteo={sorteo}
                 canEdit={canSetup}
                 title={setupTitle}
+              />
+              <SorteosVinculadosCard
+                sorteo={sorteo}
+                canEdit={canSetup}
+                title={setupTitle}
+                onSave={saveChanges}
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Card Reglas de Elegibilidad */}

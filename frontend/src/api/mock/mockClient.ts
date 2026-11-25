@@ -2714,9 +2714,39 @@ export class MockApiClient implements ApiClient {
         'La duración de la animación debe estar entre 5 y 30 segundos.',
       )
     }
+    const linkedEventId = this.resolveLink(raffle, body.linkedEventId ?? null)
     // Como el servicio: un premio por persona no se apaga.
-    Object.assign(raffle, body, { onePrizePerPerson: true })
+    Object.assign(raffle, body, { onePrizePerPerson: true, linkedEventId })
     this.persistState()
+  }
+
+  /** Como ResolveLinkAsync del servicio: sin cadenas, ni el propio evento, ni un ancla que se vincula. */
+  private resolveLink(raffle: MockRaffle, target: string | null): string | null {
+    if (target === null || target === (raffle.linkedEventId ?? null)) return target
+    if (target === raffle.eventId) throw rechazo('RAFFLE_LINK_INVALID')
+    if (!this.eventos.some((e) => e.id === target)) throw rechazo('RAFFLE_LINK_INVALID')
+    const grupo = this.raffles.find((r) => r.eventId === target)?.linkedEventId ?? target
+    if (grupo === raffle.eventId) return null
+    if (this.raffles.some((r) => r.linkedEventId === raffle.eventId))
+      throw rechazo('RAFFLE_LINK_INVALID')
+    return grupo
+  }
+
+  /** Las claves de persona con un premio vivo en los sorteos vinculados a `raffle`. */
+  private linkedWinnerKeys(raffle: MockRaffle): Set<string> {
+    const grupo = raffle.linkedEventId ?? raffle.eventId
+    const keys = new Set<string>()
+    for (const otro of this.raffles) {
+      if (otro === raffle || (otro.linkedEventId ?? otro.eventId) !== grupo) continue
+      const porId = new Map(
+        (this.frozenAttendees[otro.id] ?? []).map((a) => [mockAttendeeId(a), a.identityKey]),
+      )
+      for (const d of otro.rounds.flatMap((r) => r.prizes).flatMap((p) => p.draws)) {
+        const key = d.void === null ? porId.get(d.winnerAttendeeId) : undefined
+        if (key) keys.add(key)
+      }
+    }
+    return keys
   }
 
   async deleteRaffle(eventId: string): Promise<void> {
@@ -3344,11 +3374,13 @@ export class MockApiClient implements ApiClient {
     )
     const winners = new Set(live.map((d) => d.winnerAttendeeId))
     const winningCompanies = new Set(live.map((d) => companyKey(d.winnerCompany)))
+    const linkedWinners = this.linkedWinnerKeys(raffle)
     const counts: PoolExhaustedCounts = {
       participants: qualified.length,
       excludedByVoid: 0,
       excludedByPerson: 0,
       excludedByCompany: 0,
+      excludedByLinkedRaffle: 0,
     }
     const members = qualified.filter((attendee) => {
       const id = mockAttendeeId(attendee)
@@ -3356,6 +3388,7 @@ export class MockApiClient implements ApiClient {
       if (voided.has(id)) counts.excludedByVoid++
       // Quien ganó nunca vuelve al bombo, como EligiblePool en el servicio.
       else if (winners.has(id)) counts.excludedByPerson++
+      else if (linkedWinners.has(attendee.identityKey)) counts.excludedByLinkedRaffle! += 1
       else if (raffle.onePrizePerCompany && company !== null && winningCompanies.has(company)) {
         counts.excludedByCompany++
       } else return true
@@ -3653,6 +3686,7 @@ export class MockApiClient implements ApiClient {
           redeemedCount: states.filter((s) => s === 'redeemed').length,
           startedAt: raffle.startedAt,
           completedAt: raffle.completedAt,
+          linkedEventId: raffle.linkedEventId ?? null,
         }
       })
       .sort((a, b) => b.eventStartDate.localeCompare(a.eventStartDate))
@@ -3724,15 +3758,21 @@ export class MockApiClient implements ApiClient {
     }
 
     const decisionDe = new Map(overrides.map((o) => [o.identityKey, o.decision]))
-    const exigeLlegada = this.raffles.find((r) => r.eventId === eventId)?.requiresCheckIn !== false
+    const raffle = this.findRaffle(eventId)
+    const exigeLlegada = raffle.requiresCheckIn !== false
+    const ganaronEnVinculados = this.linkedWinnerKeys(raffle)
     return structuredClone(
       base.map((p) => {
         const override = decisionDe.get(p.identityKey) ?? null
+        // Como el servicio: el excluido a mano manda; después, quien ganó en un sorteo vinculado.
+        const vinculado = override !== 'excluded' && ganaronEnVinculados.has(p.identityKey)
         return {
           ...p,
           override,
-          qualified:
-            override === 'included'
+          exclusionReason: vinculado ? 'won_in_linked_raffle' : null,
+          qualified: vinculado
+            ? false
+            : override === 'included'
               ? true
               : override === 'excluded'
                 ? false

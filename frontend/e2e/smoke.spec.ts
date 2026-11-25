@@ -14,7 +14,7 @@ test('la raíz salta el landing y abre el portal con sus cuatro tarjetas', async
     await expect(page.getByRole('heading', { level: 2, name: tarjeta })).toBeVisible()
   }
   await page
-    .getByRole('link', { name: 'Acceder al módulo' })
+    .getByRole('link', { name: 'Acceder', exact: true })
     .and(page.locator('[href="/sorteo"]'))
     .click()
   await expect(page).toHaveURL(/\/sorteo$/)

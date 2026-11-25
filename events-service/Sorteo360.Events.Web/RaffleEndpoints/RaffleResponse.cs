@@ -16,6 +16,9 @@ public record RaffleResponse
     public bool OnePrizePerPerson { get; init; }
     public bool OnePrizePerCompany { get; init; }
     public bool OnePrizePerDepartmentPerRound => OnePrizePerCompany;
+
+    /// <summary>El evento al que está vinculado: sus sorteos no repiten ganadores. Nulo sin vínculo.</summary>
+    public Guid? LinkedEventId { get; init; }
     public string? BoardTitle { get; init; }
     public string? BoardSubtitle { get; init; }
     public string? BoardIdentifier { get; init; }
@@ -164,6 +167,7 @@ public record RaffleResponse
         RequiresCheckIn = raffle.RequiresCheckIn,
         OnePrizePerPerson = raffle.OnePrizePerPerson,
         OnePrizePerCompany = raffle.OnePrizePerCompany,
+        LinkedEventId = raffle.LinkedEventId,
         BoardTitle = raffle.BoardTitle,
         BoardSubtitle = raffle.BoardSubtitle,
         BoardIdentifier = raffle.BoardIdentifier,

@@ -199,6 +199,13 @@ public sealed class MigraDocNotarialRecordRenderer : INotarialRecordRenderer
             AddField(section, "Un premio por empresa", YesNo(content.OnePrizePerCompany));
         }
 
+        if (content.LinkedRaffleNames.Count > 0)
+        {
+            AddField(section, "Sorteos vinculados", string.Join(", ", content.LinkedRaffleNames));
+            section.AddParagraph(
+                "Quien tenía un premio vigente en un sorteo vinculado quedó fuera del bombo de este sorteo.");
+        }
+
         section.AddParagraph(content.AwardsListApplied
             ? "Al cerrar la lista de participantes se aplicó la lista de DO Travel Awards en vigor."
             : "Advertencia: al cerrar la lista de participantes no había una lista de DO Travel Awards en vigor, " +

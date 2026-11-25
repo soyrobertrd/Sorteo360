@@ -630,3 +630,27 @@ servicios, `shared/`, `infra/` y `docs/`, y el frontend solo `frontend/`.
   `skipped_no_email`). Endpoint `POST …/attendees/overrides/bulk-exclude`, pantalla «Excluir en
   lote» y e2e nuevo. El mock pasó a `sorteo360.mock.state.v4`. Falla previa, no de este bloque:
   `RaffleDrawnSetupEndpointsTests.UpdateRaffle_Returns204WithTheNewRules…(False, False)`.
+- 2026-11-25: sin commit, nada desplegado.
+  - **502 de convocatorias en eventos:** el servidor (`app.169-58-108-73.sslip.io`) corre sin
+    convocatorias-service y la página del evento le pedía campañas igual. Ahora esas lecturas exigen
+    el interruptor Invitaciones (`useConvocatoriasDisponible`) y la pestaña se oculta. En el servidor
+    hay que apagar Invitaciones después de desplegar.
+  - **Ganadores:** columna Código / ID en vez de Correo, "Anular ganador" en el menú Acciones, y
+    paginación de 50. **Participantes:** paginación de 50 en todos los filtros.
+  - **Pasar no ganadores a otro sorteo** (Participantes → Más): carga en un sorteo en borrador, y
+    reemplaza su padrón, a quienes no tienen premio vivo (`noGanadores.ts`).
+  - **Memoria:** límites en `docker-compose.prod.yml` (events 2 GB, convocatorias 768 MB,
+    notifications 512 MB). Hay que recrear los contenedores en el servidor.
+  - **Sorteos vinculados** (enmienda a ADR-0022): `raffle.linked_event_id` (migración
+    `AddRaffleLinkedEvent`), quien ganó en un sorteo del mismo grupo queda fuera del bombo (motivo
+    `won_in_linked_raffle`, cuenta `excludedByLinkedRaffle`), bloqueo del grupo al girar, el acta
+    nombra los vinculados, tarjeta "Sorteos vinculados" en Configuración, y el mock igual.
+    Verificación: events unitarias 747/747, integración 761/761 (6 nuevas en
+    `RaffleLinkEndpointsTests`); frontend `npm test` 191/191, Playwright 33/33.
+- 2026-11-25 (después): lo que faltaba de los sorteos vinculados, sin commit. El cruce de ganadores
+  vinculados es también por ID de empleado (correo en un padrón, solo ID en otro); la tabla de
+  participantes muestra "Excluido · Ganó en un sorteo vinculado" antes de girar (motivo
+  `won_in_linked_raffle`, no se puede incluir a mano); "Nuevo sorteo" permite vincular al crear.
+  En el portal, "Acceder al módulo" pasa a un botón "Acceder" bajo una línea divisoria. Pruebas:
+  integración nueva por ID, mock y e2e `sorteo-vinculados`; Playwright 34/34, `npm test` 191/191.
+

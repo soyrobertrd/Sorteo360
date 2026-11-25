@@ -227,7 +227,8 @@ public sealed class RaffleRepository : IRaffleRepository
                         && _context.Prizes.Any(p => p.Id == d.PrizeId
                             && _context.RaffleRounds.Any(rr => rr.Id == p.RoundId && rr.RaffleId == x.Raffle.Id))),
                     x.Raffle.StartedAt,
-                    x.Raffle.CompletedAt))
+                    x.Raffle.CompletedAt,
+                    x.Raffle.LinkedEventId))
                 .ToListAsync(cancellationToken);
 
             return new PagedResult<RaffleListItem>(items, total, page, pageSize);
@@ -953,10 +954,11 @@ public sealed class RaffleRepository : IRaffleRepository
             if (prizeData is null)
                 return Result.Failure<PrizeDraw, BaseError>(RaffleErrors.PrizeNotFound());
 
-            var attendees = await QueryFrozenAttendeesAsync(raffleId, cancellationToken);
+            var raffle = MapToRaffle(raffleData);
+            var attendees = await QueryAttendeesForDrawAsync(raffle, cancellationToken);
             var draws = await ListDrawsAsync(raffleId, cancellationToken);
 
-            var decided = decide(MapToRaffle(raffleData), MapToPrize(prizeData), attendees, draws);
+            var decided = decide(raffle, MapToPrize(prizeData), attendees, draws);
             if (decided.IsFailure)
                 return decided;
 
@@ -1013,7 +1015,7 @@ public sealed class RaffleRepository : IRaffleRepository
                     return Result.Failure<DrawBatchOutcome, BaseError>(RaffleErrors.PrizeNotFound());
             }
 
-            var attendees = await QueryFrozenAttendeesAsync(raffleId, cancellationToken);
+            var attendees = await QueryAttendeesForDrawAsync(raffle, cancellationToken);
             var allDraws = (await ListDrawsAsync(raffleId, cancellationToken)).ToList();
             var drawnInBatch = new List<PrizeDraw>(prizeIds.Count);
             var usedCodes = new HashSet<string>(StringComparer.Ordinal);
@@ -1333,7 +1335,10 @@ public sealed class RaffleRepository : IRaffleRepository
     private async Task<NotarialRecordFacts> ReadRecordFactsAsync(Raffle raffle, CancellationToken cancellationToken) => new(
         await LoadRoundsAsync(raffle, cancellationToken),
         await QueryFrozenAttendeesAsync(raffle.Id, cancellationToken),
-        await ReadRecordEventAsync(raffle.EventId, cancellationToken));
+        await ReadRecordEventAsync(raffle.EventId, cancellationToken))
+    {
+        LinkedRaffleNames = await QueryLinkedRaffleNamesAsync(raffle, cancellationToken),
+    };
 
     /// <summary>
     /// El evento como lo dice el acta, con sus ciudades vivas en orden de pantalla. Sin mirar su
@@ -1666,6 +1671,97 @@ public sealed class RaffleRepository : IRaffleRepository
             .ToListAsync(cancellationToken);
 
     /// <summary>
+    /// Los asistentes congelados para girar, ya marcados si ganaron en un sorteo vinculado. Antes toma
+    /// el bloqueo del grupo, así que dos sorteos vinculados no giran a la vez y ninguno elige a quien
+    /// el otro acaba de premiar. Va después del bloqueo de la fila del sorteo: siempre en ese orden.
+    /// </summary>
+    private async Task<IReadOnlyList<RaffleAttendee>> QueryAttendeesForDrawAsync(
+        Raffle raffle, CancellationToken cancellationToken)
+    {
+        await _context.Database.ExecuteSqlAsync(
+            $"SELECT pg_advisory_xact_lock(hashtextextended({raffle.GroupEventId}::text, 0))", cancellationToken);
+
+        return RaffleAttendee.TagLinkedWinners(
+            await QueryFrozenAttendeesAsync(raffle.Id, cancellationToken),
+            await QueryLinkedWinnerKeysAsync(raffle, cancellationToken));
+    }
+
+    /// <summary>Los sorteos del mismo grupo que <paramref name="raffle"/>, sin él, de la cuenta en curso.</summary>
+    private IQueryable<RaffleData> LinkedRafflesOf(Raffle raffle)
+    {
+        var groupEventId = raffle.GroupEventId;
+        return from r in _context.Raffles.AsNoTracking()
+               join e in _context.Events.AsNoTracking() on r.EventId equals e.Id
+               where r.Id != raffle.Id && (r.LinkedEventId == groupEventId || (r.LinkedEventId == null && r.EventId == groupEventId))
+               select r;
+    }
+
+    /// <summary>
+    /// Las claves de persona, en este sorteo, de quien tiene un premio vivo en un sorteo vinculado. Se
+    /// cruza por clave y también por ID de empleado: la misma persona puede venir con correo en un
+    /// padrón y solo con su ID en otro, y entonces sus claves difieren.
+    /// </summary>
+    private async Task<IReadOnlySet<string>> QueryLinkedWinnerKeysAsync(Raffle raffle, CancellationToken cancellationToken)
+    {
+        var winners = await (
+            from d in _context.PrizeDraws.AsNoTracking()
+            join p in _context.Prizes.AsNoTracking() on d.PrizeId equals p.Id
+            join rr in _context.RaffleRounds.AsNoTracking() on p.RoundId equals rr.Id
+            join r in LinkedRafflesOf(raffle) on rr.RaffleId equals r.Id
+            where d.VoidedAt == null
+            select new
+            {
+                Key = d.WinnerIdentityKey,
+                Code = _context.RaffleParticipants
+                    .Where(rp => rp.EventId == r.EventId && rp.IdentityKey == d.WinnerIdentityKey)
+                    .Select(rp => rp.EmployeeCode)
+                    .FirstOrDefault(),
+            }
+        ).ToListAsync(cancellationToken);
+
+        var keys = winners.Select(w => w.Key).ToHashSet(StringComparer.Ordinal);
+        var codes = winners
+            .Select(w => PersonIdentity.NormalizeId(w.Code) ?? PersonIdentity.IdOf(w.Key))
+            .OfType<string>()
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (codes.Count == 0)
+            return keys;
+
+        foreach (var code in codes)
+            keys.Add(PersonIdentity.IdPrefix + code);
+
+        // Quien en este padrón trae correo y el mismo ID que un ganador vinculado.
+        var sameId = await _context.RaffleParticipants.AsNoTracking()
+            .Where(rp => rp.EventId == raffle.EventId
+                && rp.EmployeeCode != null
+                && codes.Contains(rp.EmployeeCode.Trim().ToLower()))
+            .Select(rp => rp.IdentityKey)
+            .ToListAsync(cancellationToken);
+        keys.UnionWith(sameId);
+        return keys;
+    }
+
+    public Task<Result<IReadOnlySet<string>, BaseError>> ListLinkedWinnerKeysAsync(Raffle raffle, CancellationToken cancellationToken) =>
+        DbResult.TryAsync(_logger, "leer los ganadores de los sorteos vinculados", () =>
+            QueryLinkedWinnerKeysAsync(raffle, cancellationToken));
+
+    public Task<Result<IReadOnlyList<string>, BaseError>> ListLinkedRaffleNamesAsync(Raffle raffle, CancellationToken cancellationToken) =>
+        DbResult.TryAsync(_logger, "leer los sorteos vinculados", async () =>
+            (IReadOnlyList<string>)await QueryLinkedRaffleNamesAsync(raffle, cancellationToken));
+
+    private Task<List<string>> QueryLinkedRaffleNamesAsync(Raffle raffle, CancellationToken cancellationToken) => (
+        from r in LinkedRafflesOf(raffle)
+        join e in _context.Events.AsNoTracking() on r.EventId equals e.Id
+        orderby e.StartDate, e.Name
+        select e.Name
+    ).ToListAsync(cancellationToken);
+
+    public Task<Result<bool, BaseError>> HasRafflesLinkedToAsync(Guid eventId, CancellationToken cancellationToken) =>
+        DbResult.TryAsync(_logger, "buscar sorteos vinculados", () =>
+            _context.Raffles.AsNoTracking().AnyAsync(r => r.LinkedEventId == eventId, cancellationToken));
+
+    /// <summary>
     /// Bloquea la fila del sorteo hasta el final de la transacción en curso. Es lo que serializa
     /// las altas y bajas de rondas de un mismo sorteo —sin él, dos altas simultáneas tomarían el
     /// mismo número y una baja concurrente renumeraría bajo los pies de la otra—, el arranque
@@ -1721,6 +1817,7 @@ public sealed class RaffleRepository : IRaffleRepository
         data.RequiresCheckIn = raffle.RequiresCheckIn;
         data.OnePrizePerPerson = raffle.OnePrizePerPerson;
         data.OnePrizePerCompany = raffle.OnePrizePerCompany;
+        data.LinkedEventId = raffle.LinkedEventId;
         data.BoardTitle = raffle.BoardTitle;
         data.BoardSubtitle = raffle.BoardSubtitle;
         data.BoardIdentifier = raffle.BoardIdentifier;
@@ -1875,6 +1972,7 @@ public sealed class RaffleRepository : IRaffleRepository
         CompletedAt = data.CompletedAt,
         CompletedById = data.CompletedById,
         RequiresCheckIn = data.RequiresCheckIn,
+        LinkedEventId = data.LinkedEventId,
         BoardTitle = data.BoardTitle,
         BoardSubtitle = data.BoardSubtitle,
         BoardIdentifier = data.BoardIdentifier,

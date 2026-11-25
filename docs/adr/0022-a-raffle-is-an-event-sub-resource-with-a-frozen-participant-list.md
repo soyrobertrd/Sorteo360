@@ -7,6 +7,17 @@
 
 ## Amendments
 
+**2026-11-25 — linked raffles: several raffles of one event do not repeat winners.** Decided by
+Robert for Sorteo360 (the "one raffle per event, rounds do the grouping" reasoning was PGTI's). The
+unique index on `event_id` stays — every raffle still hangs off its own event and its own routes —
+but a raffle may now carry `linked_event_id`. Raffles sharing a group (`linked_event_id`, or their
+own `event_id` when unlinked) exclude anyone holding a live prize in a sibling, matched by
+`identity_key`; draws of a group serialise on a transaction advisory lock on the group id, taken
+after the raffle row lock. No chains: linking to a linked raffle stores its group, and a raffle that
+others link to cannot itself link elsewhere (`RAFFLE_LINK_INVALID`). The acta names the linked
+raffles. The rule rides on "one prize per person", which is always on.
+
+
 **2026-10-01 — the awards upload is deferred; raffles run with the awards step skipped.** Settled
 in the PGTI-115 planning session. The 2026-09-29 amendment below kept the awards upload unchanged;
 it is now postponed rather than dropped. Unlike attendance, the real source is external with no

@@ -162,6 +162,11 @@ services:
         condition: service_completed_successfully
       keycloak:
         condition: service_healthy
+    # Sin límite, el contenedor ve toda la RAM del servidor: el acta con 10.000 premios llegó a 1,1 GB (A31); .NET ajusta su heap al límite.
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
     networks: [sorteo360-prod-net]
     profiles: [events]
 
@@ -194,6 +199,10 @@ services:
         condition: service_completed_successfully
       keycloak:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 768M
     networks: [sorteo360-prod-net]
     profiles: [convocatorias]
 
@@ -226,6 +235,10 @@ services:
         condition: service_completed_successfully
       keycloak:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks: [sorteo360-prod-net]
     profiles: [notifications]
 

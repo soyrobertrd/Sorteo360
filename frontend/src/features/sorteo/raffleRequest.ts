@@ -31,6 +31,7 @@ export function toUpdateRaffleRequest(
     requiresCheckIn: raffle.requiresCheckIn ?? true,
     onePrizePerPerson: raffle.onePrizePerPerson,
     onePrizePerCompany: raffle.onePrizePerCompany,
+    linkedEventId: raffle.linkedEventId ?? null,
     notaryName: raffle.notaryName,
     notaryIdentityDocument: raffle.notaryIdentityDocument,
     witnessOneName: raffle.witnessOneName,

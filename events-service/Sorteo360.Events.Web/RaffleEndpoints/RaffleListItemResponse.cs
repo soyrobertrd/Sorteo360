@@ -21,6 +21,7 @@ public record RaffleListItemResponse
     public int RedeemedCount { get; init; }
     public DateTimeOffset? StartedAt { get; init; }
     public DateTimeOffset? CompletedAt { get; init; }
+    public Guid? LinkedEventId { get; init; }
 
     public static RaffleListItemResponse From(RaffleListItem item) => new()
     {
@@ -34,5 +35,6 @@ public record RaffleListItemResponse
         RedeemedCount = item.RedeemedCount,
         StartedAt = item.StartedAt,
         CompletedAt = item.CompletedAt,
+        LinkedEventId = item.LinkedEventId,
     };
 }

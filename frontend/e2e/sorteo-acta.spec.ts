@@ -18,7 +18,7 @@ async function abrirCompletar(page: Page) {
   return page.getByRole('dialog')
 }
 
-test('completar exige las instrucciones de retiro, y al completarse lista el acta y el correo', async ({
+test('completar exige las instrucciones de retiro, y al completarse lista el acta', async ({
   page,
 }) => {
   await sortearUnPremio(page)
@@ -51,14 +51,18 @@ test('completar exige las instrucciones de retiro, y al completarse lista el act
 
   await expect(page.getByText('Completado').first()).toBeVisible()
   await expect(versiones(page)).toHaveText(['Versión 1'])
-  await page.getByRole('tab', { name: /^Ganadores/ }).click()
-  await expect(page.getByRole('row').nth(1).getByText('Correo enviado')).toBeVisible()
 })
 
-test('mientras está en curso, el correo del ganador sale al completar', async ({ page }) => {
+test('en curso, Ganadores muestra el código y anular va en Acciones', async ({ page }) => {
   await sortearUnPremio(page)
   await page.getByRole('tab', { name: /^Ganadores/ }).click()
-  await expect(page.getByRole('row').nth(1).getByText('Se envía al completar')).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Código / ID' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Correo' })).toHaveCount(0)
+  await page
+    .getByRole('button', { name: /^Acciones de / })
+    .first()
+    .click()
+  await expect(page.getByRole('button', { name: 'Anular ganador' })).toBeVisible()
 })
 
 test('reemitir el acta corrige las autoridades y agrega una versión', async ({ page }) => {
