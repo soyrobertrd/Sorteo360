@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  identificadoresDeMatriz,
   mapHeaders,
   parseParticipantMatrix,
   parseParticipantText,
   problemsToCsv,
   splitDelimitedLine,
+  textoAMatriz,
 } from './participantFile'
 
 describe('parseParticipantMatrix', () => {
@@ -48,8 +50,8 @@ describe('parseParticipantMatrix', () => {
 
   it('con departamento y ubicación, cada uno va a su campo', () => {
     const { rows } = parseParticipantMatrix([
-      ['Nombres', 'Apellidos', 'Departamento', 'Sucursal'],
-      ['Luis', 'Gómez', 'Tesorería', 'Torre Banreservas'],
+      ['Nombres', 'Apellidos', 'Departamento', 'Sucursal', 'Código'],
+      ['Luis', 'Gómez', 'Tesorería', 'Torre Banreservas', 'E-1'],
     ])
     expect(rows[0]).toMatchObject({
       fullName: 'Luis Gómez',
@@ -62,8 +64,8 @@ describe('parseParticipantMatrix', () => {
   it('pone a todos la empresa de la carga cuando el archivo no la trae', () => {
     const { rows } = parseParticipantMatrix(
       [
-        ['Nombre', 'Ubicación'],
-        ['Luis Gómez', 'Oficina Pantoja'],
+        ['Nombre', 'Ubicación', 'Código'],
+        ['Luis Gómez', 'Oficina Pantoja', 'E-1'],
       ],
       { empresa: 'Banreservas' },
     )
@@ -121,11 +123,22 @@ describe('parseParticipantMatrix', () => {
     })
   })
 
+  it('rechaza la fila sin correo ni ID y carga la que trae solo uno de los dos', () => {
+    const { rows, problems } = parseParticipantMatrix([
+      ['Nombre', 'Correo', 'Código'],
+      ['Pedro Solo Id', '', 'E-55'],
+      ['Rosa Solo Correo', 'rosa@x.com', ''],
+      ['Nadie Sin Nada', '', ''],
+    ])
+    expect(rows.map((r) => r.fullName)).toEqual(['Pedro Solo Id', 'Rosa Solo Correo'])
+    expect(problems).toEqual([{ row: 4, message: 'Fila sin correo ni ID: no se importa.' }])
+  })
+
   it('lee la asistencia como sí/no', () => {
     const { rows } = parseParticipantMatrix([
-      ['Nombre', 'Asistencia'],
-      ['Ana', 'Sí'],
-      ['Luis', 'no'],
+      ['Nombre', 'Asistencia', 'Código'],
+      ['Ana', 'Sí', 'E-1'],
+      ['Luis', 'no', 'E-2'],
     ])
     expect(rows.map((r) => r.checkedIn)).toEqual([true, false])
   })
@@ -134,16 +147,38 @@ describe('parseParticipantMatrix', () => {
 describe('parseParticipantText', () => {
   it('lee CSV con comillas y BOM', () => {
     const { rows } = parseParticipantText(
-      '\uFEFFNombre completo;Departamento\n"Pérez; Ana";Finanzas\n',
+      '\uFEFFNombre completo;Departamento;ID\n"Pérez; Ana";Finanzas;E-1\n',
     )
     expect(rows[0]).toMatchObject({ fullName: 'Pérez; Ana', department: 'Finanzas' })
   })
 
   it('lee un TXT con una persona por línea y "Nombre - Departamento"', () => {
-    const { rows } = parseParticipantText('Nombre\nAna Pérez - Finanzas\nLuis Gómez\n')
+    const { rows } = parseParticipantText('Nombre\nAna Pérez - Finanzas\nLuis Gómez\n', {
+      generarCodigo: true,
+    })
     expect(rows.map((r) => [r.fullName, r.department])).toEqual([
       ['Ana Pérez', 'Finanzas'],
       ['Luis Gómez', undefined],
+    ])
+  })
+})
+
+describe('identificadoresDeMatriz', () => {
+  it('toma el correo de cada fila y, si no tiene, su ID; descarta la que no trae ninguno', () => {
+    const { valores, descartadas } = identificadoresDeMatriz([
+      ['Nombre', 'Correo', 'Cédula'],
+      ['Ana', 'ana@x.com', '001-1'],
+      ['Pedro', '', 'E-55'],
+      ['Nadie', '', ''],
+    ])
+    expect(valores).toEqual(['ana@x.com', 'E-55'])
+    expect(descartadas).toBe(1)
+  })
+
+  it('lee un TXT con un valor por línea', () => {
+    expect(identificadoresDeMatriz(textoAMatriz('ana@x.com\nE-55\n\n')).valores).toEqual([
+      'ana@x.com',
+      'E-55',
     ])
   })
 })

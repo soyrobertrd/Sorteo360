@@ -168,14 +168,12 @@ export function leerPremios(
       })
       return
     }
+    // El valor no es obligatorio: un monto se formatea en pesos; un texto ("Viaje", "N/A") se
+    // guarda tal cual y nunca tumba la fila.
     let valor: string | null = null
     if (textoValor) {
       const monto = leerMonto(textoValor)
-      if (monto == null || monto < 0) {
-        problemas.push({ fila: numeroFila, mensaje: `El valor "${textoValor}" no es un monto.` })
-        return
-      }
-      valor = formatoPesos(monto)
+      valor = monto != null && monto >= 0 ? formatoPesos(monto) : textoValor.slice(0, 100)
     }
     // Sin columna o vacía, la fila es un premio; "1,000" o "1.000" se leen como mil.
     const cantidad = textoCantidad === '' ? 1 : Number(textoCantidad.replace(/[.,\s]/g, ''))

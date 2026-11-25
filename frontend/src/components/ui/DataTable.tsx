@@ -92,7 +92,7 @@ export function DataTable<T>({
             {cols.map((c) => (
               <th
                 key={c.key}
-                className={cn(pad, alignClass(c.align), c.headerClassName)}
+                className={cn(pad, 'whitespace-nowrap', alignClass(c.align), c.headerClassName)}
                 scope="col"
               >
                 {c.header}

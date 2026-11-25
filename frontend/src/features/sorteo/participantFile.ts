@@ -283,6 +283,12 @@ export function parseParticipantMatrix(
       }
     }
 
+    // Sin correo ni ID no hay cómo reconocer a la persona: el servicio la rechaza.
+    if (!email && !employeeCode) {
+      problems.push({ row: rowNumber, message: 'Fila sin correo ni ID: no se importa.' })
+      continue
+    }
+
     rows.push({
       fullName,
       email: email || undefined,
@@ -338,8 +344,11 @@ export function splitDelimitedLine(line: string, delimiter: string): string[] {
  * CSV o TXT. Con separador (`;`, tabulador, `|` o `,`, el primero que aparezca en la primera
  * línea) se lee como tabla; sin separador, una persona por línea, opcionalmente "Nombre - Depto".
  */
-export function parseParticipantText(text: string): ParsedParticipantFile {
-  return parseParticipantMatrix(textoAMatriz(text))
+export function parseParticipantText(
+  text: string,
+  opciones: OpcionesPadron = {},
+): ParsedParticipantFile {
+  return parseParticipantMatrix(textoAMatriz(text), opciones)
 }
 
 /** El texto de un CSV o TXT como matriz de celdas, sin interpretar columnas. */
@@ -360,6 +369,37 @@ export function textoAMatriz(text: string): unknown[][] {
     const [name, dept] = trimmed.split(/\s+[-–]\s+/)
     return [name, dept ?? '']
   })
+}
+
+export interface IdentificadoresDeArchivo {
+  /** De cada fila, su correo si lo tiene y, si no, su ID. */
+  valores: string[]
+  /** Filas con datos pero sin correo ni ID. */
+  descartadas: number
+}
+
+/**
+ * Los correos o IDs de un archivo, para la exclusión en lote. Con encabezado se leen las columnas
+ * de correo e ID del padrón (`correo`, `id`, `codigo`, `cedula`…); sin él, la primera celda de
+ * cada fila: un TXT con un valor por línea.
+ */
+export function identificadoresDeMatriz(matrix: unknown[][]): IdentificadoresDeArchivo {
+  const valores: string[] = []
+  let descartadas = 0
+  const firstIdx = matrix.findIndex((r) => !isEmptyRow(r))
+  if (firstIdx < 0) return { valores, descartadas }
+
+  const cols = mapHeaders(matrix[firstIdx].map((c) => String(c ?? '')))
+  const conEncabezado = cols.email >= 0 || cols.employeeCode >= 0
+  for (let i = conEncabezado ? firstIdx + 1 : firstIdx; i < matrix.length; i++) {
+    const raw = matrix[i] ?? []
+    if (isEmptyRow(raw)) continue
+    const cell = (idx: number) => (idx >= 0 ? String(raw[idx] ?? '').trim() : '')
+    const valor = conEncabezado ? cell(cols.email) || cell(cols.employeeCode) : cell(0)
+    if (valor) valores.push(valor)
+    else descartadas++
+  }
+  return { valores, descartadas }
 }
 
 /** Los problemas como CSV (separado por `;`, el que abre bien Excel en español). */

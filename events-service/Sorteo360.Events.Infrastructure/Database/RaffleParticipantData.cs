@@ -11,7 +11,8 @@ internal sealed class RaffleParticipantData
     public string FullName { get; set; } = string.Empty;
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
-    public string EmailNormalized { get; set; } = string.Empty;
+    public string? EmailNormalized { get; set; }
+    public string IdentityKey { get; set; } = string.Empty;
     public string? Company { get; set; }
     public string? Department { get; set; }
     public string? Location { get; set; }

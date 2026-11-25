@@ -37,7 +37,7 @@ public sealed class ReviewFindingsRegressionTests
                 id: Guid.NewGuid(),
                 eventId: eventId,
                 fullName: $"Colaborador {i}",
-                emailNormalized: $"colab{i}@banreservas.com",
+                email: $"colab{i}@banreservas.com",
                 company: "Banreservas",
                 department: $"Departamento {i}",
                 employeeCode: $"EMP-{i:D4}",
@@ -62,7 +62,7 @@ public sealed class ReviewFindingsRegressionTests
         var frozen = attendeesResult.Value
             .Select((a, idx) => new RaffleAttendee(
                 Id: participants[idx].Id,
-                EmailNormalized: a.EmailNormalized,
+                IdentityKey: a.IdentityKey,
                 ContactId: null,
                 FirstName: a.FirstName,
                 LastName: a.LastName,
@@ -87,16 +87,16 @@ public sealed class ReviewFindingsRegressionTests
 
             var winner = pool.Members[0];
             draws.Add(new PrizeDraw(
-                Guid.NewGuid(), Guid.NewGuid(), winner.Id, winner.DisplayName, winner.Company, winner.EmailNormalized,
+                Guid.NewGuid(), Guid.NewGuid(), winner.Id, winner.DisplayName, winner.Company, winner.IdentityKey,
                 Now.AddSeconds(round), Guid.NewGuid(), pool.Count, true, true, $"CODE-{round}", null, null, null, null));
 
             // Verificar que el DTO del padrón coincide exactamente con la tómbola
-            var liveWinnerEmails = draws.Select(d => d.WinnerEmail).ToHashSet(StringComparer.Ordinal);
+            var liveWinnerIdentityKeys = draws.Select(d => d.WinnerIdentityKey).ToHashSet(StringComparer.Ordinal);
             var liveWinnerKeys = draws.Select(d => CompanyKey.Normalize(d.WinnerCompany)).Where(k => k.HasValue).Select(k => k.Value).ToHashSet(StringComparer.Ordinal);
             var ctx = new RaffleParticipantWebhookEndpoints.RaffleParticipantContext(
                 new RaffleWithRounds(raffle, []) { Draws = draws },
                 new Dictionary<string, string>(),
-                liveWinnerEmails,
+                liveWinnerIdentityKeys,
                 liveWinnerKeys);
 
             var remainingEligibleDtos = participants
@@ -115,7 +115,7 @@ public sealed class ReviewFindingsRegressionTests
             id: Guid.NewGuid(),
             eventId: eventId,
             fullName: "María Gómez",
-            emailNormalized: "maria@empresa.com",
+            email: "maria@empresa.com",
             company: "Empresa",
             department: "Finanzas",
             employeeCode: "E-100",
@@ -230,7 +230,7 @@ public sealed class ReviewFindingsRegressionTests
         var attendees = Enumerable.Range(0, 25_000)
             .Select(i => new RaffleAttendee(
                 Id: Guid.NewGuid(),
-                EmailNormalized: $"u{i}@empresa.com",
+                IdentityKey: $"u{i}@empresa.com",
                 ContactId: null,
                 FirstName: "Nombre",
                 LastName: $"Apellido {i}",
@@ -255,7 +255,7 @@ public sealed class ReviewFindingsRegressionTests
                 attendees[i].Id,
                 attendees[i].DisplayName,
                 attendees[i].Company,
-                attendees[i].EmailNormalized,
+                attendees[i].IdentityKey,
                 Now.AddSeconds(i),
                 Guid.NewGuid(),
                 25_000 - i,

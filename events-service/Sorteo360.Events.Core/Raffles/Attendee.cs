@@ -5,7 +5,8 @@ namespace Sorteo360.Events.Core.Raffles;
 /// vivo: calificada para el sorteo o no, porque clasificarla es trabajo del sorteo y no de quien
 /// la entrega.
 /// <para>
-/// La identidad es <paramref name="EmailNormalized"/>. <paramref name="ContactId"/> viaja con ella
+/// La identidad es <paramref name="IdentityKey"/> (ver <see cref="PersonIdentity"/>): el correo
+/// normalizado si lo tiene, o su ID si no. <paramref name="ContactId"/> viaja con ella
 /// solo como el identificador con el que se le pregunta al CRM, y es nulo mientras la escritura del
 /// contacto de quien se registró sigue pendiente en el CRM.
 /// </para>
@@ -15,13 +16,17 @@ namespace Sorteo360.Events.Core.Raffles;
 /// </para>
 /// </summary>
 public sealed record Attendee(
-    string EmailNormalized,
+    string IdentityKey,
     string FirstName,
     string LastName,
     string? Company,
     Guid? ContactId,
     AttendeeOrigin Origin,
-    DateTimeOffset CheckedInAt);
+    DateTimeOffset CheckedInAt)
+{
+    /// <summary>El correo de la persona, o nulo si entró solo con su ID.</summary>
+    public string? Email => PersonIdentity.EmailOf(IdentityKey);
+}
 
 /// <summary>
 /// Cómo llegó a registrarse quien está en la puerta. Lo calcula convocatorias y aquí solo se lee:

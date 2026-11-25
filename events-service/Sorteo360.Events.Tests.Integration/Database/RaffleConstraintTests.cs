@@ -137,7 +137,7 @@ public sealed class RaffleConstraintTests : IClassFixture<EventsApiDbFactory>
         var exception = await Should.ThrowAsync<PostgresException>(() =>
             InsertOverrideAsync(raffleId, "ana@agencia.com", "excluded"));
 
-        exception.ConstraintName.ShouldBe("ux_raffle_attendee_override_raffle_email");
+        exception.ConstraintName.ShouldBe("ux_raffle_attendee_override_raffle_identity_key");
     }
 
     [Fact]
@@ -267,8 +267,8 @@ public sealed class RaffleConstraintTests : IClassFixture<EventsApiDbFactory>
         var count = await CountAsync($"""
             SELECT count(*)::int AS "Value" FROM pg_indexes
             WHERE schemaname = 'events' AND tablename = 'raffle_attendee'
-              AND indexname = 'ux_raffle_attendee_raffle_email'
-              AND indexdef LIKE 'CREATE UNIQUE INDEX%(raffle_id, email_normalized)'
+              AND indexname = 'ux_raffle_attendee_raffle_identity_key'
+              AND indexdef LIKE 'CREATE UNIQUE INDEX%(raffle_id, identity_key)'
             """);
 
         count.ShouldBe(1);
@@ -448,7 +448,7 @@ public sealed class RaffleConstraintTests : IClassFixture<EventsApiDbFactory>
         ExecuteAsync(context => context.Database.ExecuteSqlInterpolatedAsync(
             $"""
             INSERT INTO events.raffle_attendee_override
-                (id, raffle_id, email_normalized, decision, decided_by_id, decided_at)
+                (id, raffle_id, identity_key, decision, decided_by_id, decided_at)
             VALUES
                 ({Guid.NewGuid()}, {raffleId}, {email}, {decision}, {Guid.NewGuid()}, now())
             """));
@@ -486,7 +486,7 @@ public sealed class RaffleConstraintTests : IClassFixture<EventsApiDbFactory>
         await ExecuteAsync(context => context.Database.ExecuteSqlInterpolatedAsync(
             $"""
             INSERT INTO events.raffle_attendee
-                (id, raffle_id, email_normalized, first_name, last_name, checked_in_at, qualified)
+                (id, raffle_id, identity_key, first_name, last_name, checked_in_at, qualified)
             VALUES
                 ({attendeeId}, {raffleId}, 'maria@agencia.com', 'María', 'Pérez', now(), true)
             """));
@@ -503,7 +503,7 @@ public sealed class RaffleConstraintTests : IClassFixture<EventsApiDbFactory>
         return ExecuteAsync(context => context.Database.ExecuteSqlInterpolatedAsync(
             $"""
             INSERT INTO events.prize_draw
-                (id, prize_id, winner_attendee_id, winner_name, winner_email, drawn_at, drawn_by_id,
+                (id, prize_id, winner_attendee_id, winner_name, winner_identity_key, drawn_at, drawn_by_id,
                  eligible_pool_size, one_prize_per_person, one_prize_per_company, redemption_code, void_code,
                  voided_at, voided_by_id)
             VALUES

@@ -4,4 +4,7 @@ namespace Sorteo360.Events.Web.RaffleEndpoints;
 public record RemoveAttendeeOverrideRequest
 {
     public string? Email { get; init; }
+
+    /// <summary>La clave de la persona (<c>identityKey</c> del padrón). Para quien no tiene correo; manda sobre <see cref="Email"/>.</summary>
+    public string? IdentityKey { get; init; }
 }

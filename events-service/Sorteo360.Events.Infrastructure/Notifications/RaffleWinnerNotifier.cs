@@ -74,10 +74,9 @@ public sealed class RaffleWinnerNotifier : IRaffleWinnerNotifier
 
         try
         {
-            // Defensivo: spec 01 §6 deja fuera del bombo a quien no tiene correo, así que un sorteo
-            // vivo siempre lo trae.
-            // Quien llegó sin correo tiene uno interno (clave del padrón): no se le escribe.
-            if (string.IsNullOrWhiteSpace(draw.WinnerEmail) || RaffleParticipant.IsSyntheticEmail(draw.WinnerEmail))
+            // Quien entró solo con su ID no tiene correo: el aviso queda en no_recipient, no falla.
+            var winnerEmail = string.IsNullOrWhiteSpace(draw.WinnerIdentityKey) ? null : PersonIdentity.EmailOf(draw.WinnerIdentityKey);
+            if (winnerEmail is null)
                 return QuoteNotificationOutcome.NoRecipient();
 
             var template = await FindTemplateAsync(@event.Language, cancellationToken);
@@ -172,7 +171,7 @@ public sealed class RaffleWinnerNotifier : IRaffleWinnerNotifier
             [
                 new NotificationRecipientRequest
                 {
-                    Email = draw.WinnerEmail,
+                    Email = PersonIdentity.EmailOf(draw.WinnerIdentityKey)!,
                     Name = AsRecipientName(draw.WinnerName),
                 },
             ],

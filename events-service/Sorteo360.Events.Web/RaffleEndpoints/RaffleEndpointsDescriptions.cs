@@ -385,6 +385,27 @@ internal static class RaffleEndpointsDescriptions
         un motivo de más arriba se acepta y no cambia nada.
         """;
 
+    public const string BulkExcludeSummary =
+        "Saca del bombo a un grupo de personas de una vez.";
+
+    public const string BulkExcludeDescription =
+        """
+        Exclusión en lote, con exactamente una fuente: `sourceEventId` excluye a los ganadores vivos
+        del sorteo de otro evento de la cuenta (un ganador anulado no cuenta), e `identifiers` a una
+        lista de hasta 5000 correos o IDs de empleado (con `@` es un correo; si no, un ID). Una
+        persona se reconoce si coincide su correo o su ID. Sin `note`, el servicio pone de dónde
+        salió la exclusión.
+
+        Quien no está en el padrón o en la puerta va a `notInRoster`; un valor que no es correo ni
+        ID de nadie, a `invalid`; un ganador sin correo ni ID, a `unidentifiable` con su nombre.
+        Nada de eso falla. Todo se escribe en una transacción.
+
+        Ninguna fuente o las dos: `RAFFLE_BULK_EXCLUDE_SOURCE_REQUIRED`; más de 5000:
+        `RAFFLE_BULK_EXCLUDE_TOO_MANY`; el mismo evento: `RAFFLE_BULK_EXCLUDE_SAME_EVENT`. Una
+        fuente sin sorteo o de otra cuenta: `RAFFLE_NOT_FOUND`. Solo mientras el sorteo está en
+        `draft` (`RAFFLE_NOT_DRAFT`) y el evento admite cambios.
+        """;
+
     public const string RemoveOverrideSummary =
         "Retira la decisión manual sobre un asistente.";
 

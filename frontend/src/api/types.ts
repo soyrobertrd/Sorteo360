@@ -185,6 +185,9 @@ export type ApiErrorCode =
   | 'RAFFLE_ALREADY_EXISTS'
   | 'RAFFLE_NOT_FOUND'
   | 'RAFFLE_NOT_DRAFT'
+  | 'RAFFLE_BULK_EXCLUDE_SOURCE_REQUIRED'
+  | 'RAFFLE_BULK_EXCLUDE_TOO_MANY'
+  | 'RAFFLE_BULK_EXCLUDE_SAME_EVENT'
   | 'RAFFLE_DISPLAY_FIELDS_INVALID'
   | 'RAFFLE_NOT_IN_PROGRESS'
   | 'RAFFLE_ATTENDEE_NOT_VOIDED'
@@ -1872,7 +1875,10 @@ export type AttendanceStatus = 'ok' | 'stale' | 'unavailable'
 
 /** Un asistente, calificado o con el único motivo por el que no. */
 export interface RaffleAttendeeResponse {
-  email: string
+  /** Nulo si la persona entró solo con su ID. */
+  email: string | null
+  /** La clave interna de la persona en el evento (el correo, o `id:` + su ID). No se muestra. */
+  identityKey: string
   firstName: string
   lastName: string
   company: string | null
@@ -1901,11 +1907,36 @@ export interface RaffleAttendeesResponse {
   attendees: RaffleAttendeeResponse[] | null
 }
 
-/** El correo va en el cuerpo, nunca en la ruta. `POST` reemplaza la decisión anterior. */
+/** La clave va en el cuerpo, nunca en la ruta. `POST` reemplaza la decisión anterior. */
 export interface SetAttendeeOverrideRequest {
-  email: string
+  /** La `identityKey` del asistente: con ella se decide también sobre quien no tiene correo. */
+  identityKey: string
   decision: AttendeeOverrideDecision
   note: string | null
+}
+
+/**
+ * `POST …/attendees/overrides/bulk-exclude`: exactamente una fuente. `sourceEventId` excluye a los
+ * ganadores vivos del sorteo de ese evento; `identifiers`, a una lista de correos o IDs (hasta 5000).
+ */
+export interface BulkExcludeAttendeesRequest {
+  sourceEventId: string | null
+  identifiers: string[] | null
+  note: string | null
+}
+
+/** Lo que hizo la exclusión en lote. Quien no se encontró se informa; no es un error. */
+export interface BulkExcludeAttendeesResponse {
+  /** Exclusiones nuevas, o inclusiones que pasaron a exclusión. */
+  excluded: number
+  /** Ya estaban excluidas; no se tocaron. */
+  alreadyExcluded: number
+  /** No están en el padrón o en la puerta de este evento. */
+  notInRoster: string[]
+  /** No parecen correo y ningún participante tiene ese ID. */
+  invalid: string[]
+  /** Solo con `sourceEventId`: ganadores sin correo ni ID, por su nombre. */
+  unidentifiable: string[]
 }
 
 /** Un participante del bombo de un premio: nombre y empresa, y nada más, porque va al proyector. */
@@ -2022,7 +2053,10 @@ export interface RaffleParticipantItem {
   fullName: string
   firstName?: string | null
   lastName?: string | null
-  email: string
+  /** Nulo si la persona entró solo con su ID. */
+  email: string | null
+  /** La clave interna de la persona en el evento (el correo, o `id:` + su ID). No se muestra. */
+  identityKey: string
   company: string | null
   department?: string | null
   location?: string | null
@@ -2041,6 +2075,13 @@ export interface ImportRaffleParticipantsResponse {
   updated: number
   total: number
   participants: RaffleParticipantItem[]
+  /** Las filas que no se cargaron: número de fila (desde 1) y motivo (`missing_email_and_id`). */
+  rejected?: RaffleParticipantImportRejection[]
+}
+
+export interface RaffleParticipantImportRejection {
+  row: number
+  reason: 'missing_email_and_id'
 }
 
 // ---------- Cuentas: registro y activación (events-service, plans/sorteo360.md §9.3) ----------

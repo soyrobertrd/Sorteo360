@@ -27,7 +27,7 @@ public sealed class RaffleFreezeTests
         freeze.Started.State.ShouldBe(RaffleState.InProgress);
         freeze.Started.AwardsBatchId.ShouldBe(batchId);
         freeze.Started.StartedAt.ShouldBe(Now);
-        freeze.Attendees.Select(a => a.EmailNormalized).ShouldBe(door.Select(a => a.EmailNormalized), ignoreOrder: true);
+        freeze.Attendees.Select(a => a.IdentityKey).ShouldBe(door.Select(a => a.IdentityKey), ignoreOrder: true);
         freeze.Attendees.Count(a => a.Qualified).ShouldBe(2);
     }
 
@@ -93,7 +93,7 @@ public sealed class RaffleFreezeTests
         door.Where(a => a.ContactId is not null).ToDictionary(a => a.ContactId!.Value, _ => (string?)null);
 
     private static Attendee Invitee(string email) => new(
-        EmailNormalized: email,
+        IdentityKey: email,
         FirstName: "Nombre",
         LastName: "Apellido",
         Company: "Agencia",

@@ -8,13 +8,23 @@ public sealed class SetAttendeeOverrideRequestValidator : AbstractValidator<SetA
 {
     private const int NoteMaxLength = 1000;
 
+    private const int IdentityKeyMaxLength = 330;
+
     public SetAttendeeOverrideRequestValidator()
     {
         RuleFor(x => x.Email)
             .NotEmpty()
-            .WithMessage("El correo es obligatorio.")
+            .When(x => string.IsNullOrWhiteSpace(x.IdentityKey))
+            .WithMessage("El correo o la identityKey es obligatorio.");
+
+        RuleFor(x => x.Email)
             .EmailAddress()
+            .When(x => !string.IsNullOrWhiteSpace(x.Email) && string.IsNullOrWhiteSpace(x.IdentityKey))
             .WithMessage("El correo no tiene un formato válido.");
+
+        RuleFor(x => x.IdentityKey)
+            .MaximumLength(IdentityKeyMaxLength)
+            .WithMessage($"La identityKey no puede superar {IdentityKeyMaxLength} caracteres.");
 
         RuleFor(x => x.Decision)
             .NotEmpty()

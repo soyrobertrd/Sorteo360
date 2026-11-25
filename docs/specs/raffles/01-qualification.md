@@ -370,7 +370,7 @@ freeze:
 
 | Column | Notes |
 | ------ | ----- |
-| `raffle_id`, `email_normalized` | unique together |
+| `raffle_id`, `identity_key` | unique together. `identity_key` is the person's key in the event: the normalised email, or `id:` + the employee ID when there is no email (`PersonIdentity`) |
 | `decision` | `included` \| `excluded` |
 | `note` | optional free text, shown to the next operator. At most 1,000 characters; blank is stored as null |
 | `decided_by_id`, `decided_at` | |
@@ -382,6 +382,21 @@ because the decision is a row and the computed list is not.
 Overrides are **not** deleted at the freeze. They stay as the record of what was decided and by
 whom, and `raffle_attendee` carries a copy of the provenance so a single read of the frozen table
 answers the acta's questions without a join.
+
+**Bulk exclusion** (*exclusión en lote*, added 2026-11-24) writes many `excluded` overrides in one
+call, `POST …/raffle/attendees/overrides/bulk-exclude`, from exactly one of two sources:
+
+- **Another raffle's winners** (`sourceEventId`): the live winners of another event of the same
+  account. A voided winner took nothing and does not count. A source of another account answers
+  `404 RAFFLE_NOT_FOUND`, like one with no raffle.
+- **A list** (`identifiers`): up to 5,000 emails or employee IDs; a value with `@` is an email.
+
+A person is recognised in the target if their email **or** their ID matches. The rule is the same as
+the single override: **only in draft** (`RAFFLE_NOT_DRAFT`). Unlike it, people who are not on the
+roster or not at the door **are reported, not failed**: `notInRoster`, `invalid` (no email and no
+participant with that ID), and `unidentifiable` (a winner with neither email nor ID, by name).
+Everything is written in one transaction. Each person can be put back one by one with the
+existing remove-override.
 
 ## 5. The awards seam
 
@@ -670,8 +685,9 @@ blocks: prizes may be added while `in_progress`.
 | `POST /v1/awards-members` | `raffles:write` | §5.1. Replaces the list wholesale |
 | `GET /v1/awards-members` | — | the batch metadata and a count. Never the addresses |
 | `GET /v1/events/{id}/raffle/attendees` | — | §8. Both lists |
-| `POST /v1/events/{id}/raffle/attendees/overrides` | `raffles:write` | body `{ email, decision, note? }` |
-| `DELETE /v1/events/{id}/raffle/attendees/overrides` | `raffles:write` | body `{ email }` |
+| `POST /v1/events/{id}/raffle/attendees/overrides` | `raffles:write` | body `{ email \| identityKey, decision, note? }` |
+| `DELETE /v1/events/{id}/raffle/attendees/overrides` | `raffles:write` | body `{ email \| identityKey }` |
+| `POST /v1/events/{id}/raffle/attendees/overrides/bulk-exclude` | `raffles:write` | body `{ sourceEventId \| identifiers, note? }`; §4.2 |
 
 `raffles:write` covers editing the qualified list, exactly as `00` §11 says. There is no new role.
 

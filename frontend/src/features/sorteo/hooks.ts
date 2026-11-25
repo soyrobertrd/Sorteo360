@@ -13,6 +13,7 @@ import type {
   ReissueRaffleRequest,
   ReversePrizeHandoverRequest,
   SetAttendeeOverrideRequest,
+  BulkExcludeAttendeesRequest,
   SetCertificateSignersRequest,
   RaffleDisplayFields,
   VoidPrizeDrawRequest,
@@ -20,6 +21,7 @@ import type {
 import { toUpdateRaffleRequest, type RaffleChanges } from './raffleRequest'
 import { prizesOf } from './raffleView'
 import type { PremioImportado } from './premioFile'
+import { leerTodasLasPaginas } from '@/lib/paging'
 
 /** El tope de página del servicio: los listados del módulo leen una sola página así de grande. */
 export const RAFFLE_PAGE_SIZE = 100
@@ -96,6 +98,15 @@ export function useRaffleList(enabled = true) {
     queryKey: raffleKeys.list(FIRST_PAGE),
     queryFn: () => api.listRaffles(FIRST_PAGE),
     enabled,
+  })
+}
+
+/** Todos los sorteos, página tras página: para un selector donde cualquiera tiene que poder elegirse. */
+export function useAllRaffles() {
+  return useQuery({
+    queryKey: [...raffleKeys.all, 'list', 'todas'] as const,
+    queryFn: () =>
+      leerTodasLasPaginas((page) => api.listRaffles({ page, pageSize: RAFFLE_PAGE_SIZE })),
   })
 }
 
@@ -339,6 +350,15 @@ export function useSetAttendeeOverride(eventId: string) {
   const invalidate = useInvalidateRaffles()
   return useMutation({
     mutationFn: (body: SetAttendeeOverrideRequest) => api.setAttendeeOverride(eventId, body),
+    onSettled: invalidate,
+  })
+}
+
+/** Excluir en lote cambia la lista, el bombo y si el sorteo puede arrancar: se relee todo el sorteo. */
+export function useBulkExcludeAttendees(eventId: string) {
+  const invalidate = useInvalidateRaffles()
+  return useMutation({
+    mutationFn: (body: BulkExcludeAttendeesRequest) => api.bulkExcludeAttendees(eventId, body),
     onSettled: invalidate,
   })
 }

@@ -1,0 +1,35 @@
+meta {
+  name: Bulk Exclude Attendees
+  type: http
+  seq: 29
+}
+
+post {
+  url: {{baseUrl}}/v{{apiVersion}}/events/:eventId/raffle/attendees/overrides/bulk-exclude
+  body: json
+  auth: inherit
+}
+
+params:path {
+  eventId: {{eventId}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "sourceEventId": null,
+    "identifiers": ["ana@banco.com", "E-10234"],
+    "note": null
+  }
+}
+
+docs {
+  Excluye en lote: los ganadores vivos del sorteo de `sourceEventId`, o los correos e IDs de
+  `identifiers` (exactamente una de las dos). **200** con `excluded`, `alreadyExcluded`,
+  `notInRoster`, `invalid` y `unidentifiable`. **400 RAFFLE_BULK_EXCLUDE_SOURCE_REQUIRED**,
+  **400 RAFFLE_BULK_EXCLUDE_TOO_MANY** (más de 5000), **400 RAFFLE_BULK_EXCLUDE_SAME_EVENT**,
+  **404 RAFFLE_NOT_FOUND** (sin sorteo o de otra cuenta), **409 RAFFLE_NOT_DRAFT**.
+}

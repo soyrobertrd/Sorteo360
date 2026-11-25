@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -61,7 +60,7 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
                 .AsNoTracking()
                 .Where(p => p.EventId == eventId)
                 .OrderBy(p => p.FullName)
-                .ThenBy(p => p.EmailNormalized)
+                .ThenBy(p => p.IdentityKey)
                 .ToListAsync(cancellationToken);
 
             return Result.Success<IReadOnlyList<RaffleParticipant>, BaseError>(rows.Select(MapToDomain).ToList());
@@ -109,7 +108,8 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
 
             foreach (var row in existing)
             {
-                byEmail[row.EmailNormalized] = row;
+                if (row.EmailNormalized is not null)
+                    byEmail[row.EmailNormalized] = row;
                 usedQrCodes.Add(row.QrCode);
                 if (!string.IsNullOrWhiteSpace(row.TicketNumber))
                     usedTicketNumbers.Add(row.TicketNumber);
@@ -120,6 +120,8 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
             var normalizedSource = string.IsNullOrWhiteSpace(source) ? "manual" : source.Trim().ToLowerInvariant();
             var imported = 0;
             var updated = 0;
+            var rejected = new List<RaffleParticipantImportRejection>();
+            var rowNumber = 0;
 
             // A31: desactivar DetectChanges por fila para evitar O(n²) al importar 25.000 participantes.
             var previousAutoDetect = _context.ChangeTracker.AutoDetectChangesEnabled;
@@ -128,6 +130,7 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
             {
                 foreach (var raw in participants)
             {
+                rowNumber++;
                 var firstName = NormalizeNullable(raw.FirstName);
                 var lastName = NormalizeNullable(raw.LastName);
                 var fullName = NormalizeNullable(raw.FullName)
@@ -142,6 +145,13 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
                 var location = NormalizeNullable(raw.Location);
                 var phone = NormalizeNullable(raw.Phone);
                 var requestedQr = NormalizeNullable(raw.QrCode);
+
+                // Sin correo ni ID no hay cómo reconocer a la persona: la fila se informa y el lote sigue.
+                if (email is null && employeeCode is null)
+                {
+                    rejected.Add(new RaffleParticipantImportRejection(rowNumber, RaffleParticipantImportRejection.MissingEmailAndId));
+                    continue;
+                }
 
                 RaffleParticipantData? match = null;
                 if (employeeCode is not null)
@@ -179,10 +189,14 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
 
                     if (email is not null && !string.Equals(match.EmailNormalized, email, StringComparison.Ordinal) && !byEmail.ContainsKey(email))
                     {
-                        byEmail.Remove(match.EmailNormalized);
+                        if (match.EmailNormalized is not null)
+                            byEmail.Remove(match.EmailNormalized);
                         match.EmailNormalized = email;
                         byEmail[email] = match;
                     }
+
+                    // La clave sigue al correo y al ID; una fila vieja sin ninguno conserva la suya.
+                    match.IdentityKey = PersonIdentity.KeyFor(match.EmailNormalized, match.EmployeeCode) ?? match.IdentityKey;
 
                     if (requestedQr is not null
                         && !string.Equals(match.QrCode, requestedQr, StringComparison.OrdinalIgnoreCase)
@@ -212,7 +226,10 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
                     continue;
                 }
 
-                var finalEmail = ResolveUniqueEmail(email, employeeCode, byEmail);
+                // Un correo compartido (buzón de área, relleno como na@na.com) no puede tumbar la carga
+                // por el índice único: el ID manda y el segundo entra sin ese correo.
+                var finalEmail = email is not null && !byEmail.ContainsKey(email) ? email : null;
+                var identityKey = PersonIdentity.KeyFor(finalEmail, employeeCode)!;
                 var finalQrCode = ResolveUniqueQrCode(requestedQr, usedQrCodes);
                 var ticketNumber = TicketNumberGenerator.NextUnique(usedTicketNumbers);
                 var checkedIn = raw.CheckedIn ?? markCheckedIn;
@@ -225,6 +242,7 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
                     FirstName = firstName,
                     LastName = lastName,
                     EmailNormalized = finalEmail,
+                    IdentityKey = identityKey,
                     Company = company,
                     Department = department,
                     Location = location,
@@ -241,7 +259,8 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
 
                 _context.RaffleParticipants.Add(created);
                 existing.Add(created);
-                byEmail[created.EmailNormalized] = created;
+                if (created.EmailNormalized is not null)
+                    byEmail[created.EmailNormalized] = created;
                 usedQrCodes.Add(created.QrCode);
                 usedTicketNumbers.Add(created.TicketNumber);
                 if (created.EmployeeCode is not null)
@@ -262,12 +281,12 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
 
             var domainList = existing
                 .OrderBy(p => p.FullName, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(p => p.EmailNormalized, StringComparer.Ordinal)
+                .ThenBy(p => p.IdentityKey, StringComparer.Ordinal)
                 .Select(MapToDomain)
                 .ToList();
 
             return Result.Success<RaffleParticipantImportResult, BaseError>(
-                new RaffleParticipantImportResult(imported, updated, domainList.Count, domainList));
+                new RaffleParticipantImportResult(imported, updated, domainList.Count, domainList, rejected));
         });
     }
 
@@ -396,30 +415,6 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    private static string ResolveUniqueEmail(
-        string? email,
-        string? employeeCode,
-        IDictionary<string, RaffleParticipantData> byEmail)
-    {
-        // Un correo compartido (buzón de área, relleno como na@na.com) no puede tumbar la carga por
-        // el índice único: el código manda y el segundo entra sin ese correo.
-        if (email is not null && !byEmail.ContainsKey(email))
-            return email;
-
-        if (employeeCode is not null)
-        {
-            var slug = SanitizeCodeForEmail(employeeCode);
-            var candidate = $"{slug}{RaffleParticipant.SyntheticEmailDomain}";
-            if (!byEmail.ContainsKey(candidate))
-                return candidate;
-
-            candidate = $"{slug}-{Guid.NewGuid().ToString("N")[..6]}{RaffleParticipant.SyntheticEmailDomain}";
-            return candidate;
-        }
-
-        return $"participante-{Guid.NewGuid():N}{RaffleParticipant.SyntheticEmailDomain}";
-    }
-
     private static string ResolveUniqueQrCode(string? requestedQr, HashSet<string> usedQrCodes)
     {
         if (requestedQr is not null && !usedQrCodes.Contains(requestedQr))
@@ -435,16 +430,6 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
         return generated;
     }
 
-    private static string SanitizeCodeForEmail(string employeeCode)
-    {
-        var sb = new StringBuilder(employeeCode.Length);
-        foreach (var ch in employeeCode.Trim().ToLowerInvariant())
-        {
-            sb.Append(char.IsLetterOrDigit(ch) || ch is '.' or '-' or '_' ? ch : '-');
-        }
-        return sb.Length > 0 ? sb.ToString() : "empleado";
-    }
-
     private static string? NormalizeNullable(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -456,7 +441,7 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
         id: data.Id,
         eventId: data.EventId,
         fullName: data.FullName,
-        emailNormalized: data.EmailNormalized,
+        email: data.EmailNormalized,
         company: data.Company,
         department: data.Department,
         employeeCode: data.EmployeeCode,
@@ -470,6 +455,7 @@ public sealed class RaffleParticipantRepository : IRaffleParticipantRepository
         ticketNumber: data.TicketNumber,
         firstName: data.FirstName,
         lastName: data.LastName,
-        location: data.Location);
+        location: data.Location,
+        identityKey: data.IdentityKey);
 }
 

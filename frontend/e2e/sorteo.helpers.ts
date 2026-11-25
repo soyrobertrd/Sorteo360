@@ -10,7 +10,7 @@ import { expect, type Page } from '@playwright/test'
  */
 export async function abrir(page: Page, ruta: string) {
   await page.addInitScript(() => {
-    const clave = 'sorteo360.mock.state.v3'
+    const clave = 'sorteo360.mock.state.v4'
     if (localStorage.getItem(clave)) return
     const fila = (key: string) => ({
       key,

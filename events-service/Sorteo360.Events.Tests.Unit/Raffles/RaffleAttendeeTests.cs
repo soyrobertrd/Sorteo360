@@ -21,7 +21,7 @@ public sealed class RaffleAttendeeTests
 
         var row = RaffleAttendee.From(Classify(ana));
 
-        row.EmailNormalized.ShouldBe("ana@agencia.com");
+        row.IdentityKey.ShouldBe("ana@agencia.com");
         row.ContactId.ShouldBe(ana.ContactId);
         row.FirstName.ShouldBe("Ana");
         row.LastName.ShouldBe("Pérez");
@@ -132,7 +132,7 @@ public sealed class RaffleAttendeeTests
         new(email, decision, note, DeciderId, DecidedAt);
 
     private static Attendee Invitee(string email) => new(
-        EmailNormalized: email,
+        IdentityKey: email,
         FirstName: "Ana",
         LastName: "Pérez",
         Company: "Agencia",

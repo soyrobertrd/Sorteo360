@@ -65,6 +65,9 @@ import {
   type VoidPrizeDrawRequest,
   type ImportRaffleParticipantsRequest,
   type ImportRaffleParticipantsResponse,
+  type BulkExcludeAttendeesRequest,
+  type BulkExcludeAttendeesResponse,
+  type RaffleParticipantImportRejection,
   type RaffleParticipantItem,
   PagedResponse,
   PublicEvento,
@@ -125,11 +128,12 @@ import {
   type MockRaffle,
 } from './seed'
 import { nuevoBoleto } from '@/features/sorteo/boleto'
+import { claveDePersona, correoDeClave } from '@/lib/personIdentity'
 
 const LATENCY_MS = 250
 // v2: semilla de fiestas navideñas; la v1 guardada (eventos del sistema anterior) se descarta.
 // v3: la demo trae 50 presentes y 39 premios; una versión nueva descarta los datos guardados.
-const SORT_MOCK_PERSIST_KEY = 'sorteo360.mock.state.v3'
+const SORT_MOCK_PERSIST_KEY = 'sorteo360.mock.state.v4'
 const isBrowserPersist = (() => {
   try {
     return (
@@ -299,7 +303,7 @@ function assertTelefono(phone: string | null | undefined): void {
  * único en la lista.
  */
 function mockAttendeeId(attendee: RaffleAttendeeResponse): string {
-  return `att-${attendee.email}`
+  return `att-${attendee.identityKey}`
 }
 
 /** Las seis autoridades de la reemisión, con el nombre y el tope del validator del servicio. */
@@ -384,7 +388,8 @@ function classifyDoorEntry(
   }
   const [exclusionReason, overruledReason] = reasons()
   return {
-    email: entry.email,
+    email: correoDeClave(entry.identityKey),
+    identityKey: entry.identityKey,
     firstName: entry.firstName,
     lastName: entry.lastName,
     company: entry.company,
@@ -549,7 +554,8 @@ export class MockApiClient implements ApiClient {
     'ev-0001': seedRaffleDoorList.map((entry, idx) => ({
       id: `part-ev0001-${idx + 1}`,
       fullName: `${entry.firstName} ${entry.lastName}`.trim(),
-      email: entry.email,
+      email: correoDeClave(entry.identityKey),
+      identityKey: entry.identityKey,
       company: entry.company,
       department: entry.company,
       employeeCode: String(19000 + idx * 311),
@@ -2102,15 +2108,14 @@ export class MockApiClient implements ApiClient {
       })
     }
     for (const p of this.raffleParticipants[eventId] ?? []) {
-      const email = p.email.trim().toLowerCase()
       const [firstName, ...rest] = p.fullName.trim().split(/\s+/)
-      byEmail.set(email, {
+      byEmail.set(p.identityKey, {
         registrationId: `reg-${eventId}-${p.id}`,
         firstName: firstName || p.fullName,
         lastName: rest.join(' '),
         company: p.company,
         reference: p.employeeCode || p.qrCode,
-        email,
+        email: p.email ?? '',
         qrCode: p.qrCode,
       })
     }
@@ -2148,7 +2153,7 @@ export class MockApiClient implements ApiClient {
       (this.raffleParticipants[evId] ?? []).find(
         (p) =>
           p.qrCode.toLowerCase() === norm ||
-          p.email.toLowerCase() === norm ||
+          p.email?.toLowerCase() === norm ||
           (p.employeeCode && p.employeeCode.toLowerCase() === norm),
       )
 
@@ -2731,12 +2736,11 @@ export class MockApiClient implements ApiClient {
     // Sin la regla de presencia, todo el padrón entra a la tómbola (A35).
     const exigeLlegada = this.raffles.find((r) => r.eventId === eventId)?.requiresCheckIn !== false
     for (const p of this.raffleParticipants[eventId] ?? []) {
-      const email = p.email.trim().toLowerCase()
-      const manual = overrides.find((o) => o.email === email)
+      const manual = overrides.find((o) => o.identityKey === p.identityKey)
       if (exigeLlegada && !p.checkedIn && manual?.decision !== 'included') continue
       const [firstName, ...rest] = p.fullName.trim().split(/\s+/)
-      byEmail.set(email, {
-        email,
+      byEmail.set(p.identityKey, {
+        identityKey: p.identityKey,
         firstName: firstName || p.fullName,
         lastName: rest.join(' '),
         // Como RuleGroup del servicio: la regla de un premio por grupo agrupa por departamento.
@@ -2751,7 +2755,7 @@ export class MockApiClient implements ApiClient {
       if (!this.checkIns.has(regId) || byEmail.has(email)) continue
       const [firstName, ...rest] = r.name.trim().split(/\s+/)
       byEmail.set(email, {
-        email,
+        identityKey: email,
         firstName: firstName || r.name,
         lastName: rest.join(' '),
         company: r.company,
@@ -2767,7 +2771,7 @@ export class MockApiClient implements ApiClient {
     return this.allDoorEntriesOf(eventId).map((entry) =>
       classifyDoorEntry(
         entry,
-        overrides.find((o) => o.email === entry.email),
+        overrides.find((o) => o.identityKey === entry.identityKey),
       ),
     )
   }
@@ -2974,20 +2978,20 @@ export class MockApiClient implements ApiClient {
 
   async setAttendeeOverride(eventId: string, body: SetAttendeeOverrideRequest): Promise<void> {
     await this.delay()
-    const email = body.email.trim().toLowerCase()
+    const clave = body.identityKey.trim().toLowerCase()
     if ((body.note?.length ?? 0) > 1000) {
       throw rechazoDeCampo('Note', 'La nota no puede superar los 1000 caracteres.')
     }
     const raffle = this.findRaffleForLifecycle(eventId, ROLES.rafflesWrite)
     if (raffle.state !== 'draft') throw rechazo('RAFFLE_NOT_DRAFT')
     const inParticipants = (this.raffleParticipants[eventId] ?? []).find(
-      (p) => p.email.trim().toLowerCase() === email,
+      (p) => p.identityKey === clave,
     )
-    const inDoor = this.allDoorEntriesOf(eventId).find((e) => e.email === email)
+    const inDoor = this.allDoorEntriesOf(eventId).find((e) => e.identityKey === clave)
     if (!inParticipants && !inDoor) throw rechazo('PARTICIPANT_NOT_CHECKED_IN')
-    const overrides = (this.raffleOverrides[eventId] ?? []).filter((o) => o.email !== email)
+    const overrides = (this.raffleOverrides[eventId] ?? []).filter((o) => o.identityKey !== clave)
     overrides.push({
-      email,
+      identityKey: clave,
       decision: body.decision,
       note: body.note?.trim() || null,
       decidedById: currentMockIdentity().sub,
@@ -3006,16 +3010,132 @@ export class MockApiClient implements ApiClient {
     this.persistState()
   }
 
-  async removeAttendeeOverride(eventId: string, email: string): Promise<void> {
+  /**
+   * Como `BulkExcludeAsync` del servicio: una sola fuente, solo en borrador, y a cada persona se la
+   * reconoce por su correo o, si no, por su ID. Quien no está en el padrón o en la puerta se
+   * informa; nada se escribe a medias.
+   */
+  async bulkExcludeAttendees(
+    eventId: string,
+    body: BulkExcludeAttendeesRequest,
+  ): Promise<BulkExcludeAttendeesResponse> {
+    await this.delay()
+    if ((body.sourceEventId == null) === (body.identifiers == null))
+      throw rechazo('RAFFLE_BULK_EXCLUDE_SOURCE_REQUIRED', 400)
+    if (body.identifiers && body.identifiers.length > 5000)
+      throw rechazo('RAFFLE_BULK_EXCLUDE_TOO_MANY', 400)
+    if (body.sourceEventId === eventId) throw rechazo('RAFFLE_BULK_EXCLUDE_SAME_EVENT', 400)
+    const raffle = this.findRaffleForLifecycle(eventId, ROLES.rafflesWrite)
+    if (raffle.state !== 'draft') throw rechazo('RAFFLE_NOT_DRAFT')
+
+    type Candidato = { label: string; email: string | null; id: string | null; deArchivo: boolean }
+    const candidatos: Candidato[] = []
+    const invalid: string[] = []
+    const unidentifiable: string[] = []
+    let notaPorOmision = 'Importado en lote'
+    if (body.sourceEventId) {
+      const fuente = this.findRaffle(body.sourceEventId)
+      notaPorOmision = `Ganador de «${this.eventos.find((e) => e.id === body.sourceEventId)?.name ?? 'otro sorteo'}»`
+      const padronFuente = this.raffleParticipants[body.sourceEventId] ?? []
+      const vistos = new Set<string>()
+      for (const draw of fuente.rounds.flatMap((r) => r.prizes).flatMap((p) => p.draws)) {
+        if (draw.void !== null) continue
+        const clave = draw.winnerAttendeeId.replace(/^att-/, '')
+        if (vistos.has(clave)) continue
+        vistos.add(clave)
+        const ficha = padronFuente.find((p) => p.identityKey === clave)
+        const email = ficha?.email ?? correoDeClave(clave)
+        const id =
+          ficha?.employeeCode?.trim().toLowerCase() ||
+          (clave.startsWith('id:') ? clave.slice(3) : null)
+        if (!email && !id) unidentifiable.push(draw.winnerName)
+        else
+          candidatos.push({
+            label: email ?? ficha?.employeeCode ?? id!,
+            email,
+            id,
+            deArchivo: false,
+          })
+      }
+    } else {
+      const vistos = new Set<string>()
+      for (const raw of body.identifiers ?? []) {
+        const valor = raw.trim()
+        if (!valor || vistos.has(valor.toLowerCase())) continue
+        vistos.add(valor.toLowerCase())
+        if (!valor.includes('@'))
+          candidatos.push({ label: valor, email: null, id: valor.toLowerCase(), deArchivo: true })
+        else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor))
+          candidatos.push({ label: valor, email: valor.toLowerCase(), id: null, deArchivo: true })
+        else invalid.push(valor)
+      }
+    }
+
+    const padron = this.raffleParticipants[eventId] ?? []
+    const puerta = new Set(this.allDoorEntriesOf(eventId).map((e) => e.identityKey))
+    const overrides = this.raffleOverrides[eventId] ?? []
+    const notInRoster: string[] = []
+    const tratados = new Set<string>()
+    const porExcluir: string[] = []
+    let alreadyExcluded = 0
+    for (const c of candidatos) {
+      const persona =
+        (c.email ? padron.find((p) => p.email === c.email) : undefined) ??
+        (c.id ? padron.find((p) => p.employeeCode?.trim().toLowerCase() === c.id) : undefined)
+      if (!persona) {
+        if (c.deArchivo && !c.email) invalid.push(c.label)
+        else notInRoster.push(c.label)
+        continue
+      }
+      if (tratados.has(persona.identityKey)) continue
+      tratados.add(persona.identityKey)
+      if (!puerta.has(persona.identityKey)) {
+        notInRoster.push(c.label)
+        continue
+      }
+      if (overrides.find((o) => o.identityKey === persona.identityKey)?.decision === 'excluded')
+        alreadyExcluded++
+      else porExcluir.push(persona.identityKey)
+    }
+
+    const nota = body.note?.trim() || notaPorOmision
+    const ahora = this.now()
+    const sub = currentMockIdentity().sub
+    this.raffleOverrides[eventId] = [
+      ...overrides.filter((o) => !porExcluir.includes(o.identityKey)),
+      ...porExcluir.map((identityKey) => ({
+        identityKey,
+        decision: 'excluded' as const,
+        note: nota,
+        decidedById: sub,
+        decidedAt: ahora,
+      })),
+    ]
+    for (const p of padron) {
+      if (!porExcluir.includes(p.identityKey)) continue
+      p.override = 'excluded'
+      p.qualified = false
+    }
+    this.persistState()
+    return {
+      excluded: porExcluir.length,
+      alreadyExcluded,
+      notInRoster,
+      invalid,
+      unidentifiable,
+    }
+  }
+
+  async removeAttendeeOverride(eventId: string, identityKey: string): Promise<void> {
     await this.delay()
     const raffle = this.findRaffleForLifecycle(eventId, ROLES.rafflesWrite)
     if (raffle.state !== 'draft') throw rechazo('RAFFLE_NOT_DRAFT')
-    const normalized = email.trim().toLowerCase()
+    const normalized = identityKey.trim().toLowerCase()
     this.raffleOverrides[eventId] = (this.raffleOverrides[eventId] ?? []).filter(
-      (o) => o.email !== normalized,
+      (o) => o.identityKey !== normalized,
     )
     const inParticipants = (this.raffleParticipants[eventId] ?? []).find(
-      (p) => p.email.trim().toLowerCase() === normalized,
+      (p) => p.identityKey === normalized,
     )
     if (inParticipants) {
       inParticipants.override = null
@@ -3339,7 +3459,7 @@ export class MockApiClient implements ApiClient {
     }
     const winner = members[Math.floor(Math.random() * members.length)]
     const ficha = (this.raffleParticipants[eventId] ?? []).find(
-      (p) => p.email.toLowerCase() === winner.email.toLowerCase(),
+      (p) => p.identityKey === winner.identityKey,
     )
     prize.draws.unshift({
       id: this.newId('draw'),
@@ -3568,7 +3688,7 @@ export class MockApiClient implements ApiClient {
       this.persistState()
     }
     const base = [...padron]
-    const seenEmails = new Set(base.map((p) => p.email.trim().toLowerCase()))
+    const seenEmails = new Set(base.map((p) => p.identityKey))
 
     // Incorpora asistentes con check-in del portal de convocatorias que no estén ya en el padrón.
     for (const r of this.portalRegistrations.values()) {
@@ -3577,13 +3697,14 @@ export class MockApiClient implements ApiClient {
       if (seenEmails.has(email)) continue
       const regId = `reg-${eventId}-${r.reference}`
       const checkInInfo = this.checkIns.get(regId)
-      const override = overrides.find((o) => o.email === email)?.decision ?? null
+      const override = overrides.find((o) => o.identityKey === email)?.decision ?? null
       const checkedIn = Boolean(checkInInfo)
       seenEmails.add(email)
       base.push({
         id: regId,
         fullName: r.name,
         email,
+        identityKey: email,
         company: r.company,
         department: r.company,
         employeeCode: r.reference,
@@ -3597,11 +3718,11 @@ export class MockApiClient implements ApiClient {
       })
     }
 
-    const decisionDe = new Map(overrides.map((o) => [o.email, o.decision]))
+    const decisionDe = new Map(overrides.map((o) => [o.identityKey, o.decision]))
     const exigeLlegada = this.raffles.find((r) => r.eventId === eventId)?.requiresCheckIn !== false
     return structuredClone(
       base.map((p) => {
-        const override = decisionDe.get(p.email.trim().toLowerCase()) ?? null
+        const override = decisionDe.get(p.identityKey) ?? null
         return {
           ...p,
           override,
@@ -3632,26 +3753,28 @@ export class MockApiClient implements ApiClient {
     let updated = 0
     // Índices en vez de buscar en la lista por cada fila: con 25.000 filas eso son 600 millones
     // de comparaciones.
-    const porEmail = new Map(current.map((p) => [p.email.toLowerCase(), p]))
+    const porEmail = new Map(current.filter((p) => p.email).map((p) => [p.email!.toLowerCase(), p]))
     const porCodigo = new Map(
       current.filter((p) => p.employeeCode).map((p) => [p.employeeCode!.toLowerCase(), p]),
     )
     const porQr = new Map(current.map((p) => [p.qrCode.toLowerCase(), p]))
     const boletos = new Set(current.map((x) => x.ticketNumber ?? ''))
-    const decisionDe = new Map(overrides.map((o) => [o.email, o.decision]))
+    const decisionDe = new Map(overrides.map((o) => [o.identityKey, o.decision]))
+    const rejected: RaffleParticipantImportRejection[] = []
+    let fila = 0
 
     for (const raw of body.participants) {
+      fila++
       const fullName = raw.fullName?.trim()
       if (!fullName) continue
-      const slug = fullName
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '.')
-        .replace(/^\.+|\.+$/g, '')
       const cleanCode = raw.employeeCode?.trim() || null
-      // Como events-service: manda el código; el correo solo une si no contradice el código.
       const correoDado = raw.email?.trim().toLowerCase() || null
+      // Como events-service: sin correo ni ID no hay cómo reconocer a la persona.
+      if (!correoDado && !cleanCode) {
+        rejected.push({ row: fila, reason: 'missing_email_and_id' })
+        continue
+      }
+      // Manda el código; el correo solo une si no contradice el código.
       const duenoCorreo = correoDado ? porEmail.get(correoDado) : undefined
       const correoDeOtro =
         !!duenoCorreo &&
@@ -3662,21 +3785,17 @@ export class MockApiClient implements ApiClient {
         (cleanCode ? porCodigo.get(cleanCode.toLowerCase()) : undefined) ??
         (correoDeOtro ? undefined : duenoCorreo) ??
         (raw.qrCode ? porQr.get(raw.qrCode.trim().toLowerCase()) : undefined)
-      const sintetico = `${cleanCode ? cleanCode.toLowerCase() : slug || this.newId('p')}@sorteo.local`
       const libre = (c: string) => !porEmail.has(c) || porEmail.get(c) === existing
-      const email =
-        correoDado && libre(correoDado)
-          ? correoDado
-          : existing
-            ? existing.email
-            : libre(sintetico)
-              ? sintetico
-              : `${this.newId('p')}@sorteo.local`
+      // Un correo compartido no tumba la carga: el ID manda y el segundo entra sin ese correo.
+      const email = correoDado && libre(correoDado) ? correoDado : (existing?.email ?? null)
+      const identityKey =
+        claveDePersona(email, cleanCode ?? existing?.employeeCode) ?? existing?.identityKey ?? ''
       const checkedIn = body.markCheckedIn ?? raw.checkedIn ?? true
       const now = checkedIn ? this.now() : null
       if (existing) {
         existing.fullName = fullName
         existing.email = email
+        existing.identityKey = identityKey
         if (raw.company !== undefined) existing.company = raw.company?.trim() || null
         if (raw.department !== undefined) existing.department = raw.department?.trim() || null
         if (raw.location !== undefined) existing.location = raw.location?.trim() || null
@@ -3690,10 +3809,10 @@ export class MockApiClient implements ApiClient {
           existing.checkedInAt = checkedIn ? (existing.checkedInAt ?? now) : null
         }
         existing.source = source
-        porEmail.set(email, existing)
+        if (email) porEmail.set(email, existing)
         if (cleanCode) porCodigo.set(cleanCode.toLowerCase(), existing)
         porQr.set(existing.qrCode.toLowerCase(), existing)
-        const ov = decisionDe.get(email) ?? null
+        const ov = decisionDe.get(identityKey) ?? null
         existing.override = ov
         existing.qualified =
           ov === 'included' ? true : ov === 'excluded' ? false : existing.checkedIn
@@ -3717,7 +3836,7 @@ export class MockApiClient implements ApiClient {
             .replace(/[^a-zA-Z0-9]/g, '')
             .slice(-4)
             .toUpperCase()}-${this.sequence}`
-        const ov = decisionDe.get(email) ?? null
+        const ov = decisionDe.get(identityKey) ?? null
         const ticketNumber = nuevoBoleto(boletos)
         boletos.add(ticketNumber)
         const item: RaffleParticipantItem = {
@@ -3725,6 +3844,7 @@ export class MockApiClient implements ApiClient {
           ticketNumber,
           fullName,
           email,
+          identityKey,
           company: raw.company?.trim() || raw.department?.trim() || null,
           department: raw.department?.trim() || raw.company?.trim() || null,
           location: raw.location?.trim() || null,
@@ -3740,7 +3860,7 @@ export class MockApiClient implements ApiClient {
           override: ov,
         }
         current.push(item)
-        porEmail.set(email, item)
+        if (email) porEmail.set(email, item)
         if (cleanCode) porCodigo.set(cleanCode.toLowerCase(), item)
         porQr.set(qrCode.toLowerCase(), item)
         if (checkedIn) {
@@ -3756,7 +3876,7 @@ export class MockApiClient implements ApiClient {
     this.raffleParticipants[eventId] = current
     this.persistState()
     const list = await this.listRaffleParticipants(eventId)
-    return { imported, updated, total: list.length, participants: list }
+    return { imported, updated, total: list.length, participants: list, rejected }
   }
 
   async setRaffleParticipantCheckIn(
@@ -3772,7 +3892,7 @@ export class MockApiClient implements ApiClient {
       (p) =>
         p.id.toLowerCase() === norm ||
         p.qrCode.toLowerCase() === norm ||
-        p.email.toLowerCase() === norm ||
+        p.email?.toLowerCase() === norm ||
         (p.employeeCode && p.employeeCode.toLowerCase() === norm),
     )
     if (!item) throw rechazo('REGISTRATION_NOT_FOUND', 404)
@@ -3788,7 +3908,7 @@ export class MockApiClient implements ApiClient {
       this.checkIns.delete(regId)
     }
     const ov =
-      (this.raffleOverrides[eventId] ?? []).find((o) => o.email === item.email.trim().toLowerCase())
+      (this.raffleOverrides[eventId] ?? []).find((o) => o.identityKey === item.identityKey)
         ?.decision ?? null
     item.override = ov
     item.qualified = ov === 'included' ? true : ov === 'excluded' ? false : checkedIn
@@ -3812,24 +3932,30 @@ export class MockApiClient implements ApiClient {
       } else {
         this.checkIns.delete(regId)
       }
-      const ov = overrides.find((o) => o.email === p.email.trim().toLowerCase())?.decision ?? null
+      const ov = overrides.find((o) => o.identityKey === p.identityKey)?.decision ?? null
       p.qualified = ov === 'included' ? true : ov === 'excluded' ? false : checkedIn
     }
     this.persistState()
   }
 
-  async removeRaffleParticipant(eventId: string, email: string): Promise<void> {
+  async removeRaffleParticipant(eventId: string, emailOrCode: string): Promise<void> {
     await this.delay()
     this.assertRaffleRole(ROLES.rafflesWrite)
     const raffle = this.findRaffle(eventId)
     if (raffle.state !== 'draft') throw rechazo('RAFFLE_NOT_DRAFT')
-    const norm = email.trim().toLowerCase()
+    // Como el servicio: por id, correo o ID de empleado.
+    const norm = emailOrCode.trim().toLowerCase()
     const existing = this.raffleParticipants[eventId] ?? []
-    const target = existing.find((p) => p.email.trim().toLowerCase() === norm)
+    const target = existing.find(
+      (p) =>
+        p.id.toLowerCase() === norm ||
+        p.email === norm ||
+        p.employeeCode?.trim().toLowerCase() === norm,
+    )
     if (target) {
       this.checkIns.delete(`reg-${eventId}-${target.id}`)
     }
-    this.raffleParticipants[eventId] = existing.filter((p) => p.email.trim().toLowerCase() !== norm)
+    this.raffleParticipants[eventId] = existing.filter((p) => p !== target)
     this.persistState()
   }
 }

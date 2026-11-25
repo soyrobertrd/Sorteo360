@@ -448,12 +448,18 @@ the Participants plus those left out.
 _Avoid in identifiers_: MotivoExclusion, RejectionReason, Filter
 
 **AttendeeOverride** — es. *decisión manual*:
-An operator's decision to include or exclude one Attendee from the Drum, kept by email address
-while the Raffle is being set up. It outranks the awards rule and the `.do` rule, never the four
+An operator's decision to include or exclude one Attendee from the Drum, kept by the person's identity key
+(their email, or their ID when they have no email) while the Raffle is being set up. It outranks the awards rule and the `.do` rule, never the four
 that sit above any human: a walk-in, an Attendee with no CRM contact, one CRM has suspended, and one
 CRM has blacklisted.
 An include those rules beat is not removed; it loses, and the record says it was overruled.
 _Avoid in identifiers_: ManualParticipant, Whitelist, Exception
+
+**BulkExclusion** — es. *exclusión en lote*:
+Many AttendeeOverrides of `excluded` written at once, from the live winners of another Raffle of
+the account or from a list of emails and IDs. Only while the Raffle is in draft. Who cannot be found
+is reported, never failed; each person can be put back one by one.
+_Avoid in identifiers_: MassExclude, Blacklist
 
 **AwardsMember** — es. *miembro de DO Travel Awards*:
 A person enrolled in DO Travel Awards, the client's programme outside the platform, known to us only

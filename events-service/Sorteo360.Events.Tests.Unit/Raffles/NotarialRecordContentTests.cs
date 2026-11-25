@@ -446,7 +446,7 @@ public sealed class NotarialRecordContentTests
     }
 
     private static PrizeDraw Draw(Prize prize, RaffleAttendee winner, DateTimeOffset at, int pool = 10) => new(
-        Guid.NewGuid(), prize.Id, winner.Id, winner.DisplayName, winner.Company, winner.EmailNormalized,
+        Guid.NewGuid(), prize.Id, winner.Id, winner.DisplayName, winner.Company, winner.IdentityKey,
         at, Operator, pool, true, false, "RD-7K3MQ9XA", null, null, null, null);
 
     [Fact]

@@ -781,10 +781,10 @@ namespace Sorteo360.Events.Infrastructure.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("winner_company");
 
-                    b.Property<string>("WinnerEmail")
+                    b.Property<string>("WinnerIdentityKey")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("winner_email");
+                        .HasColumnName("winner_identity_key");
 
                     b.Property<string>("WinnerName")
                         .IsRequired()
@@ -913,11 +913,6 @@ namespace Sorteo360.Events.Infrastructure.Database.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("contact_id");
 
-                    b.Property<string>("EmailNormalized")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("email_normalized");
-
                     b.Property<string>("ExclusionReason")
                         .HasColumnType("text")
                         .HasColumnName("exclusion_reason");
@@ -926,6 +921,11 @@ namespace Sorteo360.Events.Infrastructure.Database.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("first_name");
+
+                    b.Property<string>("IdentityKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("identity_key");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -971,9 +971,9 @@ namespace Sorteo360.Events.Infrastructure.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RaffleId", "EmailNormalized")
+                    b.HasIndex("RaffleId", "IdentityKey")
                         .IsUnique()
-                        .HasDatabaseName("ux_raffle_attendee_raffle_email");
+                        .HasDatabaseName("ux_raffle_attendee_raffle_identity_key");
 
                     b.ToTable("raffle_attendee", "events", t =>
                         {
@@ -1007,10 +1007,10 @@ namespace Sorteo360.Events.Infrastructure.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("decision");
 
-                    b.Property<string>("EmailNormalized")
+                    b.Property<string>("IdentityKey")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("email_normalized");
+                        .HasColumnName("identity_key");
 
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
@@ -1023,9 +1023,9 @@ namespace Sorteo360.Events.Infrastructure.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RaffleId", "EmailNormalized")
+                    b.HasIndex("RaffleId", "IdentityKey")
                         .IsUnique()
-                        .HasDatabaseName("ux_raffle_attendee_override_raffle_email");
+                        .HasDatabaseName("ux_raffle_attendee_override_raffle_identity_key");
 
                     b.ToTable("raffle_attendee_override", "events", t =>
                         {
@@ -1278,7 +1278,6 @@ namespace Sorteo360.Events.Infrastructure.Database.Migrations
                         .HasColumnName("department");
 
                     b.Property<string>("EmailNormalized")
-                        .IsRequired()
                         .HasMaxLength(320)
                         .HasColumnType("character varying(320)")
                         .HasColumnName("email_normalized");
@@ -1302,6 +1301,12 @@ namespace Sorteo360.Events.Infrastructure.Database.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("full_name");
+
+                    b.Property<string>("IdentityKey")
+                        .IsRequired()
+                        .HasMaxLength(330)
+                        .HasColumnType("character varying(330)")
+                        .HasColumnName("identity_key");
 
                     b.Property<string>("LastName")
                         .HasMaxLength(120)
@@ -1343,11 +1348,14 @@ namespace Sorteo360.Events.Infrastructure.Database.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EventId", "EmailNormalized")
-                        .IsUnique()
-                        .HasDatabaseName("ux_raffle_participant_event_email");
+                        .HasDatabaseName("ix_raffle_participant_event_email");
 
                     b.HasIndex("EventId", "EmployeeCode")
                         .HasDatabaseName("ix_raffle_participant_event_employee_code");
+
+                    b.HasIndex("EventId", "IdentityKey")
+                        .IsUnique()
+                        .HasDatabaseName("ux_raffle_participant_event_identity_key");
 
                     b.HasIndex("EventId", "QrCode")
                         .IsUnique()

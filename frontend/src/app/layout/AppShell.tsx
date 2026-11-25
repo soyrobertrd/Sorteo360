@@ -8,6 +8,7 @@ import {
   Moon,
   Sun,
   PanelLeft,
+  Menu,
   ChevronDown,
   MoreHorizontal,
   Settings,
@@ -24,7 +25,9 @@ import { useRaffleList } from '@/features/sorteo/hooks'
 import { useFeatureSwitches } from '@/features/admin/hooks'
 import { menuForPath } from '@/features/admin/sidebarMenus'
 import { useBranding } from '@/lib/branding'
-import { MobileMenuNav, SidebarMenuNav } from './ModuleMenu'
+import { MobileMenuNav, MobileTabBar, SidebarMenuNav } from './ModuleMenu'
+import { useCabeEnPestanas } from './useModuleMenu'
+import { useSoloUnModulo } from '@/features/portal/modulosVisibles'
 import { SidebarTooltip } from './SidebarNav'
 
 const esMac = typeof navigator !== 'undefined' && /Mac|iP(hone|ad)/.test(navigator.platform)
@@ -119,6 +122,12 @@ export function AppShell() {
   }, [])
 
   const menu = menuForPath(location.pathname)
+  const soloUnModulo = useSoloUnModulo()
+  // El sorteo en vivo ocupa toda la pantalla: ahí la barra inferior estorba y queda el desplegable.
+  const conPestanas = useCabeEnPestanas(menu) && !location.pathname.endsWith('/ejecutar')
+
+  // Al cambiar de pantalla, el desplegable móvil se cierra solo.
+  useEffect(() => setMobileMenuOpen(false), [location.pathname])
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false)
@@ -193,9 +202,9 @@ export function AppShell() {
   )
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground transition-colors dark:bg-card dark:text-foreground">
+    <div className="flex h-dvh w-full overflow-hidden bg-background text-foreground transition-colors dark:bg-card dark:text-foreground">
       <aside
-        className={`hidden h-screen shrink-0 flex-col border-r border-slate-200/80 bg-white transition-[width] duration-300 ease-in-out lg:flex dark:border-slate-800 dark:bg-card ${
+        className={`hidden h-dvh shrink-0 flex-col border-r border-slate-200/80 bg-white transition-[width] duration-300 ease-in-out lg:flex dark:border-slate-800 dark:bg-card ${
           collapsed ? 'w-20' : 'w-64'
         }`}
       >
@@ -358,8 +367,10 @@ export function AppShell() {
       </aside>
 
       {/* Contenedor Principal con Scroll Independiente */}
-      <div className="relative flex flex-1 flex-col h-screen overflow-y-auto min-w-0">
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white px-4 sm:px-6 lg:px-8 dark:border-slate-800 dark:bg-slate-900">
+      <div
+        className={`relative flex h-dvh min-w-0 flex-1 flex-col overflow-y-auto ${conPestanas ? 'pb-16 lg:pb-0' : ''}`}
+      >
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white px-4 sm:px-6 lg:px-8 dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center gap-3">
             {/* Toggle para Escritorio (Ocultar / Expandir Sidebar) */}
             <button
@@ -371,16 +382,36 @@ export function AppShell() {
               <PanelLeft size={19} className="stroke-2" />
             </button>
 
-            {/* Toggle para Móvil */}
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen((prev) => !prev)}
-              aria-label={mobileMenuOpen ? 'Cerrar el menú' : 'Abrir el menú'}
-              aria-expanded={mobileMenuOpen}
-              className="flex items-center justify-center rounded-xl p-2 text-slate-600 hover:bg-slate-100 lg:hidden dark:text-slate-300 dark:hover:bg-slate-800"
+            {/* Toggle para Móvil: solo cuando el menú no cabe en la barra inferior */}
+            {!conPestanas && (
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen((prev) => !prev)}
+                aria-label={mobileMenuOpen ? 'Cerrar el menú' : 'Abrir el menú'}
+                aria-expanded={mobileMenuOpen}
+                className="-ml-2 flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 lg:hidden dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            )}
+
+            {/* La marca en el teléfono, donde no hay barra lateral; lleva al portal */}
+            <Link
+              to={soloUnModulo ? menu.dashboard.to : '/app'}
+              aria-label={soloUnModulo ? menu.dashboard.label : 'Volver al Portal'}
+              className="flex min-w-0 items-center lg:hidden"
             >
-              <PanelLeft size={19} />
-            </button>
+              <img
+                src={branding.logoUrl}
+                alt={branding.organizationName}
+                className="h-7 w-auto max-w-[40vw] object-contain dark:hidden"
+              />
+              <img
+                src={branding.logoDarkUrl}
+                alt={branding.organizationName}
+                className="hidden h-7 w-auto max-w-[40vw] object-contain dark:block"
+              />
+            </Link>
           </div>
 
           {/* Lado derecho: tema y, en pantallas sin barra lateral, el menú de usuario */}
@@ -388,8 +419,9 @@ export function AppShell() {
             <button
               type="button"
               onClick={toggleTheme}
-              className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white cursor-pointer"
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 lg:h-9 lg:w-9 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
               title={isDark ? 'Modo claro' : 'Modo oscuro'}
+              aria-label={isDark ? 'Modo claro' : 'Modo oscuro'}
             >
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -401,8 +433,10 @@ export function AppShell() {
               <button
                 type="button"
                 onClick={() => setUserMenuOpen((prev) => !prev)}
-                className="flex items-center gap-1 rounded-full p-0.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                className="flex min-h-11 items-center gap-1 rounded-full p-0.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
                 title={`${userName} (${userDept})`}
+                aria-label={`Menú de ${userName}`}
+                aria-expanded={userMenuOpen}
               >
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-brand-deep text-xs font-extrabold text-white">
@@ -413,7 +447,7 @@ export function AppShell() {
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 z-50 mt-2 w-64 rounded-xl border border-slate-200 bg-white pt-2 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+                <div className="absolute right-0 z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white pt-2 shadow-xl dark:border-slate-800 dark:bg-slate-900">
                   {opcionesUsuario(() => setUserMenuOpen(false))}
                 </div>
               )}
@@ -422,8 +456,8 @@ export function AppShell() {
         </header>
 
         {/* Menú Móvil Desplegable */}
-        {mobileMenuOpen && (
-          <div className="border-b border-slate-200 bg-white py-3 lg:hidden dark:border-slate-800 dark:bg-slate-900">
+        {mobileMenuOpen && !conPestanas && (
+          <div className="border-b border-slate-200 bg-white py-3 shadow-sm lg:hidden dark:border-slate-800 dark:bg-slate-900">
             <nav className="flex flex-col gap-1 px-4">
               <MobileMenuNav menu={menu} onNavigate={() => setMobileMenuOpen(false)} />
             </nav>
@@ -441,7 +475,7 @@ export function AppShell() {
         )}
 
         {/* Contenido Principal */}
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main className="flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <Outlet />
           </div>
@@ -452,6 +486,8 @@ export function AppShell() {
           {branding.appName} · {branding.organizationName}
         </footer>
       </div>
+
+      {conPestanas && <MobileTabBar menu={menu} />}
     </div>
   )
 }

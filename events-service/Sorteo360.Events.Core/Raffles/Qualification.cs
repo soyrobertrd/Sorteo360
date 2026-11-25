@@ -46,10 +46,10 @@ public static class Qualification
         ArgumentNullException.ThrowIfNull(attendees);
         ArgumentNullException.ThrowIfNull(overrides);
 
-        var overridesByEmail = overrides.ToDictionary(o => o.EmailNormalized, StringComparer.Ordinal);
+        var overridesByEmail = overrides.ToDictionary(o => o.IdentityKey, StringComparer.Ordinal);
 
         return new QualificationResult(attendees
-            .Select(a => ClassifyOne(a, awardsList, overridesByEmail.GetValueOrDefault(a.EmailNormalized), mailability))
+            .Select(a => ClassifyOne(a, awardsList, overridesByEmail.GetValueOrDefault(a.IdentityKey), mailability))
             .ToList());
     }
 
@@ -101,7 +101,7 @@ public static class Qualification
     /// <summary>Exclusión superable por inclusión manual (lista de membresía cuando aplica).</summary>
     private static string? OverridableExclusion(Attendee attendee, Maybe<AwardsList> awardsList)
     {
-        if (awardsList.HasValue && !awardsList.Value.Members.Contains(attendee.EmailNormalized))
+        if (awardsList.HasValue && !awardsList.Value.Members.Contains(attendee.IdentityKey))
             return ExclusionReason.NotAwardsMember;
 
         return null;

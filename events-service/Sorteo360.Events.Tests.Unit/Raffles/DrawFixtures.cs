@@ -9,7 +9,7 @@ internal static class DrawFixtures
 
     public static RaffleAttendee Attendee(string first, string? company = null, bool qualified = true, Guid? id = null) => new(
         Id: id ?? Guid.NewGuid(),
-        EmailNormalized: $"{first.ToLowerInvariant()}@agencia.com",
+        IdentityKey: $"{first.ToLowerInvariant()}@agencia.com",
         ContactId: Guid.NewGuid(),
         FirstName: first,
         LastName: "Pérez",
@@ -29,7 +29,7 @@ internal static class DrawFixtures
         WinnerAttendeeId: winner.Id,
         WinnerName: $"{winner.FirstName} {winner.LastName}",
         WinnerCompany: winner.Company,
-        WinnerEmail: winner.EmailNormalized,
+        WinnerIdentityKey: winner.IdentityKey,
         DrawnAt: Now,
         DrawnById: Guid.NewGuid(),
         EligiblePoolSize: 1,

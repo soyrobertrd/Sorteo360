@@ -57,7 +57,8 @@ export function Modal({
       duration={200}
       disabled={!animated}
       className={`fixed inset-0 z-50 flex justify-center bg-slate-900/50 backdrop-blur-xs ${
-        sheet ? 'items-end' : 'items-center p-3 sm:p-4'
+        // En el teléfono todo diálogo sube desde abajo, al alcance del pulgar.
+        sheet ? 'items-end' : 'items-end sm:items-center sm:p-4'
       }`}
       onClick={onClose}
       role="dialog"
@@ -70,7 +71,7 @@ export function Modal({
         duration={200}
         disabled={!animated}
         ref={panelRef}
-        className={`w-full max-h-[90vh] ${sheet ? 'rounded-t-3xl' : 'rounded-2xl'} bg-white shadow-2xl dark:bg-slate-900 dark:border dark:border-slate-800 flex flex-col ${
+        className={`w-full max-h-[92dvh] sm:max-h-[90vh] ${sheet ? 'rounded-t-3xl' : 'rounded-t-2xl sm:rounded-2xl'} bg-white shadow-2xl dark:bg-slate-900 dark:border dark:border-slate-800 flex flex-col ${
           width ?? (wide ? 'sm:max-w-3xl' : 'sm:max-w-xl')
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -90,7 +91,7 @@ export function Modal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+              className="-mr-1.5 flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
               aria-label="Cerrar"
             >
               <X size={18} />
@@ -99,7 +100,9 @@ export function Modal({
         </div>
 
         {/* Contenido con Scroll vertical automático */}
-        <div className="px-5 py-4 overflow-y-auto custom-scrollbar">{children}</div>
+        <div className="overflow-y-auto overscroll-contain px-5 py-4 custom-scrollbar">
+          {children}
+        </div>
       </Animate>
     </Animate>,
     document.body,

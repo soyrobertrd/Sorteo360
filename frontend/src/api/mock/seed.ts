@@ -2302,7 +2302,7 @@ export const seedRaffles: MockRaffle[] = [
             draws: [
               {
                 id: 'draw-0101',
-                winnerAttendeeId: 'att-0101',
+                winnerAttendeeId: 'att-david.miller@libertytravel.com',
                 winnerName: 'David Miller',
                 winnerCompany: 'Liberty Travel USA',
                 drawnAt: '2026-04-09T22:15:00Z',
@@ -2342,7 +2342,7 @@ export const seedRaffles: MockRaffle[] = [
             draws: [
               {
                 id: 'draw-0102',
-                winnerAttendeeId: 'att-0102',
+                winnerAttendeeId: 'att-sofia.bianchi@alpitour.it',
                 winnerName: 'Sofia Bianchi',
                 winnerCompany: 'Alpitour Italia',
                 drawnAt: '2026-04-09T22:25:00Z',
@@ -2359,7 +2359,7 @@ export const seedRaffles: MockRaffle[] = [
               // Anulado antes de volver a sortearlo: su código sigue respondiendo, como anulado
               {
                 id: 'draw-0102-void',
-                winnerAttendeeId: 'att-0103',
+                winnerAttendeeId: 'att-tom.becker@dertouristik.de',
                 winnerName: 'Tom Becker',
                 winnerCompany: 'DER Touristik',
                 drawnAt: '2026-04-09T22:20:00Z',
@@ -2389,7 +2389,7 @@ export const seedRaffleQualifiedCounts: Record<string, number> = { 'raffle-0002'
  * manuales. El mock no califica (Decisión 3): solo aplica encima los ajustes a mano.
  */
 export interface MockDoorEntry {
-  email: string
+  identityKey: string
   firstName: string
   lastName: string
   company: string | null
@@ -2397,7 +2397,7 @@ export interface MockDoorEntry {
 }
 
 export interface MockAttendeeOverride {
-  email: string
+  identityKey: string
   decision: AttendeeOverrideDecision
   note: string | null
   decidedById: string
@@ -2407,56 +2407,56 @@ export interface MockAttendeeOverride {
 /** Participantes corporativos iniciales para el evento de demostración (Fiesta de Navidad). */
 export const seedRaffleDoorList: MockDoorEntry[] = [
   {
-    email: 'ana.martinez@empresa.com',
+    identityKey: 'ana.martinez@empresa.com',
     firstName: 'Ana',
     lastName: 'Martínez',
     company: 'Tecnología & Sistemas',
     exclusionBeforeOverride: null,
   },
   {
-    email: 'carlos.perez@empresa.com.do',
+    identityKey: 'carlos.perez@empresa.com.do',
     firstName: 'Carlos',
     lastName: 'Pérez',
     company: 'Operaciones',
     exclusionBeforeOverride: null,
   },
   {
-    email: 'pedro.gomez@empresa.com.do',
+    identityKey: 'pedro.gomez@empresa.com.do',
     firstName: 'Pedro',
     lastName: 'Gómez',
     company: 'Finanzas',
     exclusionBeforeOverride: null,
   },
   {
-    email: 'lucia.fernandez@empresa.com',
+    identityKey: 'lucia.fernandez@empresa.com',
     firstName: 'Lucía',
     lastName: 'Fernández',
     company: 'Talento Humano',
     exclusionBeforeOverride: null,
   },
   {
-    email: 'emily.chen@empresa.com',
+    identityKey: 'emily.chen@empresa.com',
     firstName: 'Emily',
     lastName: 'Chen',
     company: 'Comercial',
     exclusionBeforeOverride: null,
   },
   {
-    email: 'jose.rodriguez@empresa.com.do',
+    identityKey: 'jose.rodriguez@empresa.com.do',
     firstName: 'José',
     lastName: 'Rodríguez',
     company: 'Logística',
     exclusionBeforeOverride: null,
   },
   {
-    email: 'laura.santos@empresa.com',
+    identityKey: 'laura.santos@empresa.com',
     firstName: 'Laura',
     lastName: 'Santos',
     company: 'Atención al Cliente',
     exclusionBeforeOverride: null,
   },
   {
-    email: 'david.morales@empresa.com',
+    identityKey: 'david.morales@empresa.com',
     firstName: 'David',
     lastName: 'Morales',
     company: 'Auditoria Interna',
@@ -2505,8 +2505,8 @@ export const seedRaffleDoorList: MockDoorEntry[] = [
       'Oficina Malecón Center',
     ]
     return {
-      // Sin correo en el padrón: el correo interno es solo la clave, como en el servicio.
-      email: `colaborador${i + 8}@sorteo.local`,
+      // Sin correo en el padrón: la clave es su ID de empleado, como en el servicio.
+      identityKey: `id:${19000 + (i + 8) * 311}`,
       firstName: nombres[i % nombres.length],
       lastName: apellidos[(i * 3) % apellidos.length],
       company: areas[i % areas.length],
@@ -2521,42 +2521,42 @@ export const seedRaffleAttendeeOverrides: Record<string, MockAttendeeOverride[]>
 export const seedFrozenRaffleAttendees: Record<string, MockDoorEntry[]> = {
   'raffle-0002': [
     {
-      email: 'david.miller@libertytravel.com',
+      identityKey: 'david.miller@libertytravel.com',
       firstName: 'David',
       lastName: 'Miller',
       company: 'Liberty Travel USA',
       exclusionBeforeOverride: null,
     },
     {
-      email: 'sofia.bianchi@alpitour.it',
+      identityKey: 'sofia.bianchi@alpitour.it',
       firstName: 'Sofia',
       lastName: 'Bianchi',
       company: 'Alpitour Italia',
       exclusionBeforeOverride: null,
     },
     {
-      email: 'james.wilson@virginholidays.co.uk',
+      identityKey: 'james.wilson@virginholidays.co.uk',
       firstName: 'James',
       lastName: 'Wilson',
       company: 'Virgin Holidays',
       exclusionBeforeOverride: null,
     },
     {
-      email: 'claire.dubois@voyageursdumonde.fr',
+      identityKey: 'claire.dubois@voyageursdumonde.fr',
       firstName: 'Claire',
       lastName: 'Dubois',
       company: 'Voyageurs du Monde',
       exclusionBeforeOverride: null,
     },
     {
-      email: 'rafael.diaz@hotelesdelmar.com.do',
+      identityKey: 'rafael.diaz@hotelesdelmar.com.do',
       firstName: 'Rafael',
       lastName: 'Díaz',
       company: 'Hoteles del Mar',
       exclusionBeforeOverride: 'dominican_domain',
     },
     {
-      email: 'kevin.lee@walkin-agency.com',
+      identityKey: 'kevin.lee@walkin-agency.com',
       firstName: 'Kevin',
       lastName: 'Lee',
       company: null,

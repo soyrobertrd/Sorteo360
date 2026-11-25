@@ -8,6 +8,7 @@ internal sealed class RaffleParticipantConfiguration : IEntityTypeConfiguration<
     private const int FullNameMaxLength = 200;
     private const int NamePartMaxLength = 120;
     private const int EmailMaxLength = 320;
+    private const int IdentityKeyMaxLength = 330;
     private const int CompanyMaxLength = 200;
     private const int DepartmentMaxLength = 200;
     private const int LocationMaxLength = 200;
@@ -45,7 +46,11 @@ internal sealed class RaffleParticipantConfiguration : IEntityTypeConfiguration<
 
         builder.Property(p => p.EmailNormalized)
             .HasColumnName("email_normalized")
-            .HasMaxLength(EmailMaxLength)
+            .HasMaxLength(EmailMaxLength);
+
+        builder.Property(p => p.IdentityKey)
+            .HasColumnName("identity_key")
+            .HasMaxLength(IdentityKeyMaxLength)
             .IsRequired();
 
         builder.Property(p => p.Company)
@@ -104,9 +109,13 @@ internal sealed class RaffleParticipantConfiguration : IEntityTypeConfiguration<
             .HasConstraintName("fk_raffle_participant_event")
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(p => new { p.EventId, p.EmailNormalized })
-            .HasDatabaseName("ux_raffle_participant_event_email")
+        // La identidad de la persona en el evento: el correo si lo tiene, o su ID (PersonIdentity).
+        builder.HasIndex(p => new { p.EventId, p.IdentityKey })
+            .HasDatabaseName("ux_raffle_participant_event_identity_key")
             .IsUnique();
+
+        builder.HasIndex(p => new { p.EventId, p.EmailNormalized })
+            .HasDatabaseName("ix_raffle_participant_event_email");
 
         builder.HasIndex(p => new { p.EventId, p.QrCode })
             .HasDatabaseName("ux_raffle_participant_event_qr_code")

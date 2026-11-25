@@ -45,6 +45,8 @@ import type {
   ReissueRaffleRequest,
   ReversePrizeHandoverRequest,
   SetAttendeeOverrideRequest,
+  BulkExcludeAttendeesRequest,
+  BulkExcludeAttendeesResponse,
   SetCertificateSignersRequest,
   RaffleDisplayFields,
   UpdatePrizeRequest,
@@ -272,7 +274,12 @@ export interface ApiClient {
   /** Mete o saca a alguien a mano; reemplaza la decisión anterior. Solo en `draft`. */
   setAttendeeOverride(eventId: string, body: SetAttendeeOverrideRequest): Promise<void>
   /** Retira la decisión manual. Idempotente. */
-  removeAttendeeOverride(eventId: string, email: string): Promise<void>
+  removeAttendeeOverride(eventId: string, identityKey: string): Promise<void>
+  /** Excluye en lote: los ganadores vivos de otro sorteo o una lista de correos e IDs. Solo en `draft`. */
+  bulkExcludeAttendees(
+    eventId: string,
+    body: BulkExcludeAttendeesRequest,
+  ): Promise<BulkExcludeAttendeesResponse>
   createRaffleRound(eventId: string, body: RaffleRoundRequest): Promise<string>
   updateRaffleRound(eventId: string, roundId: string, body: RaffleRoundRequest): Promise<void>
   /** Solo una ronda vacía; las que quedan se renumeran `1..n`. */

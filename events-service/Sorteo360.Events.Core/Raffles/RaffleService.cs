@@ -1086,13 +1086,13 @@ public sealed class RaffleService : IRaffleService
     {
         ArgumentNullException.ThrowIfNull(dto);
 
-        var email = NormalizeEmail(dto.Email);
+        var key = NormalizeKey(dto.IdentityKey);
 
         var loadResult = await LoadDraftForWriteAsync(dto.EventId, cancellationToken);
         if (loadResult.IsFailure)
             return UnitResult.Failure(loadResult.Error);
 
-        var attendeeResult = await FindAtTheDoorAsync(dto.EventId, email, loadResult.Value.RequiresCheckIn, cancellationToken);
+        var attendeeResult = await FindAtTheDoorAsync(dto.EventId, key, loadResult.Value.RequiresCheckIn, cancellationToken);
         if (attendeeResult.IsFailure)
             return UnitResult.Failure(attendeeResult.Error);
 
@@ -1103,7 +1103,7 @@ public sealed class RaffleService : IRaffleService
                 return canInclude;
         }
 
-        var attendeeOverride = new AttendeeOverride(email, dto.Decision, dto.Note, dto.DecidedById, _clock.GetUtcNow());
+        var attendeeOverride = new AttendeeOverride(key, dto.Decision, dto.Note, dto.DecidedById, _clock.GetUtcNow());
         return await _repository.UpsertOverrideAsync(loadResult.Value.Id, attendeeOverride, cancellationToken);
     }
 
@@ -1115,8 +1115,134 @@ public sealed class RaffleService : IRaffleService
         if (loadResult.IsFailure)
             return UnitResult.Failure(loadResult.Error);
 
-        return await _repository.DeleteOverrideAsync(loadResult.Value.Id, NormalizeEmail(email), cancellationToken);
+        return await _repository.DeleteOverrideAsync(loadResult.Value.Id, NormalizeKey(email), cancellationToken);
     }
+
+    public async Task<Result<BulkExcludeOutcome, BaseError>> BulkExcludeAsync(BulkExcludeAttendeesDto dto, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+
+        if ((dto.SourceEventId is null) == (dto.Identifiers is null))
+            return Result.Failure<BulkExcludeOutcome, BaseError>(RaffleErrors.BulkExcludeSourceRequired());
+        if (dto.Identifiers is { Count: > BulkExclusion.MaxIdentifiers })
+            return Result.Failure<BulkExcludeOutcome, BaseError>(RaffleErrors.BulkExcludeTooMany(BulkExclusion.MaxIdentifiers));
+        if (dto.SourceEventId == dto.EventId)
+            return Result.Failure<BulkExcludeOutcome, BaseError>(RaffleErrors.BulkExcludeSameEvent());
+
+        var loadResult = await LoadDraftForWriteAsync(dto.EventId, cancellationToken);
+        if (loadResult.IsFailure)
+            return Result.Failure<BulkExcludeOutcome, BaseError>(loadResult.Error);
+        var raffle = loadResult.Value;
+
+        IReadOnlyList<BulkExclusion.Candidate> candidates;
+        IReadOnlyList<string> invalid = [];
+        IReadOnlyList<string> unidentifiable = [];
+        string defaultNote;
+        if (dto.SourceEventId is { } sourceEventId)
+        {
+            var source = await LoadSourceWinnersAsync(sourceEventId, cancellationToken);
+            if (source.IsFailure)
+                return Result.Failure<BulkExcludeOutcome, BaseError>(source.Error);
+            (candidates, unidentifiable, defaultNote) = source.Value;
+        }
+        else
+        {
+            (candidates, invalid) = BulkExclusion.ReadIdentifiers(dto.Identifiers!);
+            defaultNote = "Importado en lote";
+        }
+
+        var roster = await _repository.FindRosterPeopleAsync(
+            dto.EventId,
+            candidates.Where(c => c.Email is not null).Select(c => c.Email!).ToHashSet(StringComparer.Ordinal),
+            candidates.Where(c => c.Id is not null).Select(c => c.Id!).ToHashSet(StringComparer.Ordinal),
+            [],
+            cancellationToken);
+        if (roster.IsFailure)
+            return Result.Failure<BulkExcludeOutcome, BaseError>(roster.Error);
+
+        // La puerta se lee una sola vez para el lote entero, en vivo como en la exclusión de a uno.
+        var door = await ReadDoorAsync(dto.EventId, raffle.RequiresCheckIn, cancellationToken);
+        if (door.IsFailure)
+            return Result.Failure<BulkExcludeOutcome, BaseError>(door.Error);
+
+        var existing = await _repository.ListOverridesAsync(raffle.Id, cancellationToken);
+        if (existing.IsFailure)
+            return Result.Failure<BulkExcludeOutcome, BaseError>(existing.Error);
+
+        var (outcome, keys) = BulkExclusion.Classify(
+            candidates,
+            invalid,
+            unidentifiable,
+            roster.Value,
+            door.Value.Select(a => a.IdentityKey).ToHashSet(StringComparer.Ordinal),
+            existing.Value);
+
+        var now = _clock.GetUtcNow();
+        var note = dto.Note ?? defaultNote;
+        var write = await _repository.UpsertOverridesAsync(
+            raffle.Id,
+            keys.Select(k => new AttendeeOverride(k, AttendeeOverrideDecision.Excluded, note, dto.DecidedById, now)).ToList(),
+            cancellationToken);
+
+        return write.IsFailure
+            ? Result.Failure<BulkExcludeOutcome, BaseError>(write.Error)
+            : Result.Success<BulkExcludeOutcome, BaseError>(outcome);
+    }
+
+    /// <summary>
+    /// Los ganadores vivos del sorteo de otro evento de la cuenta, como candidatos: el correo y el ID
+    /// salen de su clave y del padrón de ese evento, en una sola consulta. Un evento de otra cuenta
+    /// responde igual que uno sin sorteo. Un ganador anulado no se llevó nada y no cuenta.
+    /// </summary>
+    private async Task<Result<SourceWinners, BaseError>> LoadSourceWinnersAsync(
+        Guid sourceEventId, CancellationToken cancellationToken)
+    {
+        // El repositorio de eventos filtra por cuenta: sin evento visible, sin sorteo.
+        var sourceEvent = await _eventRepository.GetByIdAsync(sourceEventId, cancellationToken);
+        if (sourceEvent.IsFailure)
+            return Result.Failure<SourceWinners, BaseError>(sourceEvent.Error);
+        if (sourceEvent.Value.HasNoValue)
+            return Result.Failure<SourceWinners, BaseError>(RaffleErrors.NotFound());
+
+        var sourceRaffle = await _repository.GetWithRoundsByEventIdAsync(sourceEventId, cancellationToken);
+        if (sourceRaffle.IsFailure)
+            return Result.Failure<SourceWinners, BaseError>(sourceRaffle.Error);
+        if (sourceRaffle.Value.HasNoValue)
+            return Result.Failure<SourceWinners, BaseError>(RaffleErrors.NotFound());
+
+        var winners = sourceRaffle.Value.Value.Draws
+            .Where(d => d.IsLive)
+            .GroupBy(d => d.WinnerIdentityKey, StringComparer.Ordinal)
+            .Select(g => g.First())
+            .ToList();
+
+        var people = await _repository.FindRosterPeopleAsync(
+            sourceEventId, [], [], winners.Select(w => w.WinnerIdentityKey).ToList(), cancellationToken);
+        if (people.IsFailure)
+            return Result.Failure<SourceWinners, BaseError>(people.Error);
+        var byKey = people.Value.ToDictionary(p => p.IdentityKey, StringComparer.Ordinal);
+
+        var candidates = new List<BulkExclusion.Candidate>();
+        var unidentifiable = new List<string>();
+        foreach (var winner in winners)
+        {
+            byKey.TryGetValue(winner.WinnerIdentityKey, out var person);
+            var email = person?.Email ?? PersonIdentity.EmailOf(winner.WinnerIdentityKey);
+            var id = PersonIdentity.NormalizeId(person?.EmployeeCode) ?? PersonIdentity.IdOf(winner.WinnerIdentityKey);
+            if (email is null && id is null)
+                unidentifiable.Add(winner.WinnerName);
+            else
+                candidates.Add(new BulkExclusion.Candidate(email ?? person?.EmployeeCode?.Trim() ?? id!, email, id));
+        }
+
+        return Result.Success<SourceWinners, BaseError>(
+            new SourceWinners(candidates, unidentifiable, $"Ganador de «{sourceEvent.Value.Value.Event.Name}»"));
+    }
+
+    private sealed record SourceWinners(
+        IReadOnlyList<BulkExclusion.Candidate> Candidates,
+        IReadOnlyList<string> Unidentifiable,
+        string Note);
 
     /// <summary>
     /// Que el evento, el sorteo y el premio existan, y después todo lo demás bajo el bloqueo del
@@ -1466,21 +1592,31 @@ public sealed class RaffleService : IRaffleService
     /// dueño del dato y falla cerrada (ADR-0013). El techo se cuenta igual que en la lectura.
     /// </summary>
     private async Task<Result<Attendee, BaseError>> FindAtTheDoorAsync(
-        Guid eventId, string email, bool requiresCheckIn, CancellationToken cancellationToken)
+        Guid eventId, string identityKey, bool requiresCheckIn, CancellationToken cancellationToken)
+    {
+        var door = await ReadDoorAsync(eventId, requiresCheckIn, cancellationToken);
+        if (door.IsFailure)
+            return Result.Failure<Attendee, BaseError>(door.Error);
+
+        var attendee = door.Value.FirstOrDefault(a => a.IdentityKey == identityKey);
+        return attendee is null
+            ? Result.Failure<Attendee, BaseError>(RaffleErrors.ParticipantNotCheckedIn())
+            : Result.Success<Attendee, BaseError>(attendee);
+    }
+
+    /// <summary>La puerta en vivo, respetando <c>RequiresCheckIn</c> y el techo de asistentes.</summary>
+    private async Task<Result<IReadOnlyList<Attendee>, BaseError>> ReadDoorAsync(
+        Guid eventId, bool requiresCheckIn, CancellationToken cancellationToken)
     {
         var door = requiresCheckIn
             ? await _liveAttendance.GetCheckedInAsync(eventId, cancellationToken)
             : await _liveAttendance.GetAttendeesAsync(eventId, requiresCheckIn: false, cancellationToken);
         if (door.IsFailure)
-            return Result.Failure<Attendee, BaseError>(door.Error);
+            return door;
 
-        if (door.Value.Count > MaxAttendees)
-            return Result.Failure<Attendee, BaseError>(RaffleErrors.AttendanceTooManyRows());
-
-        var attendee = door.Value.FirstOrDefault(a => a.EmailNormalized == email);
-        return attendee is null
-            ? Result.Failure<Attendee, BaseError>(RaffleErrors.ParticipantNotCheckedIn())
-            : Result.Success<Attendee, BaseError>(attendee);
+        return door.Value.Count > MaxAttendees
+            ? Result.Failure<IReadOnlyList<Attendee>, BaseError>(RaffleErrors.AttendanceTooManyRows())
+            : door;
     }
 
     /// <summary>
@@ -1511,10 +1647,11 @@ public sealed class RaffleService : IRaffleService
     }
 
     /// <summary>
-    /// El correo como identidad: sin espacios alrededor y en minúsculas, el mismo subconjunto
-    /// conservador que usa la puerta (spec 01 §2). Nada más: ni puntos de gmail ni <c>+etiqueta</c>.
+    /// La clave de la persona tal como llega (un correo o una <c>identityKey</c>): sin espacios
+    /// alrededor y en minúsculas, el mismo subconjunto conservador que usa la puerta (spec 01 §2).
+    /// Nada más: ni puntos de gmail ni <c>+etiqueta</c>. Las claves ya se guardan así.
     /// </summary>
-    private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+    private static string NormalizeKey(string key) => key.Trim().ToLowerInvariant();
 
     /// <summary>
     /// Si el sorteo puede arrancar (spec 01 §8.1). Sin copia de la puerta se informa solo
@@ -1662,7 +1799,7 @@ public sealed class RaffleService : IRaffleService
     private static IReadOnlyList<RaffleAttendee> InDisplayOrder(IEnumerable<RaffleAttendee> attendees) => attendees
         .OrderBy(a => a.LastName, NameOrder)
         .ThenBy(a => a.FirstName, NameOrder)
-        .ThenBy(a => a.EmailNormalized, StringComparer.Ordinal)
+        .ThenBy(a => a.IdentityKey, StringComparer.Ordinal)
         .ToList();
 
     /// <summary>Lo que se leyó para calcular el bombo y lo que salió.</summary>

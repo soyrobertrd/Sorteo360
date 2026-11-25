@@ -64,7 +64,7 @@ test('un cambio de interruptor sobrevive a la recarga', async ({ page }) => {
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const estado = JSON.parse(localStorage.getItem('sorteo360.mock.state.v3') ?? '{}') as {
+        const estado = JSON.parse(localStorage.getItem('sorteo360.mock.state.v4') ?? '{}') as {
           featureSwitches?: { enabled: boolean }[]
         }
         return (estado.featureSwitches ?? []).some((s) => !s.enabled)

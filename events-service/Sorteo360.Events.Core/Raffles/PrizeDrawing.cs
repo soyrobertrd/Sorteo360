@@ -55,7 +55,7 @@ public static class PrizeDrawing
             WinnerAttendeeId: winner.Id,
             WinnerName: winner.DisplayName,
             WinnerCompany: winner.Company,
-            WinnerEmail: winner.EmailNormalized,
+            WinnerIdentityKey: winner.IdentityKey,
             DrawnAt: now,
             DrawnById: drawnById,
             EligiblePoolSize: pool.Count,

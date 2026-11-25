@@ -25,8 +25,8 @@ internal sealed class RaffleAttendeeOverrideConfiguration : IEntityTypeConfigura
             .HasColumnName("raffle_id")
             .IsRequired();
 
-        builder.Property(o => o.EmailNormalized)
-            .HasColumnName("email_normalized")
+        builder.Property(o => o.IdentityKey)
+            .HasColumnName("identity_key")
             .IsRequired();
 
         builder.Property(o => o.Decision)
@@ -54,8 +54,8 @@ internal sealed class RaffleAttendeeOverrideConfiguration : IEntityTypeConfigura
 
         // Una decisión por persona y sorteo. Es este índice el que lo garantiza, y sobre él se
         // apoya el upsert del repositorio.
-        builder.HasIndex(o => new { o.RaffleId, o.EmailNormalized })
-            .HasDatabaseName("ux_raffle_attendee_override_raffle_email")
+        builder.HasIndex(o => new { o.RaffleId, o.IdentityKey })
+            .HasDatabaseName("ux_raffle_attendee_override_raffle_identity_key")
             .IsUnique();
     }
 }

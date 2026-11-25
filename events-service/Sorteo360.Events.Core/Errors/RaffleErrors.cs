@@ -260,4 +260,22 @@ public static class RaffleErrors
         "El participante no tiene una anulación activa que reactivar.",
         "RAFFLE_ATTENDEE_NOT_VOIDED",
         ErrorKind.Conflict);
+
+    /// <summary>La exclusión en lote necesita exactamente una fuente: un sorteo o una lista.</summary>
+    public static BaseError BulkExcludeSourceRequired() => new(
+        "Indique una sola fuente: el sorteo de otro evento o una lista de correos e IDs.",
+        "RAFFLE_BULK_EXCLUDE_SOURCE_REQUIRED",
+        ErrorKind.Invalid);
+
+    /// <summary>La lista de la exclusión en lote supera el tope.</summary>
+    public static BaseError BulkExcludeTooMany(int max) => new(
+        $"La exclusión en lote admite como máximo {max} identificadores.",
+        "RAFFLE_BULK_EXCLUDE_TOO_MANY",
+        ErrorKind.Invalid);
+
+    /// <summary>La fuente de la exclusión en lote es el mismo evento.</summary>
+    public static BaseError BulkExcludeSameEvent() => new(
+        "El sorteo de origen tiene que ser de otro evento.",
+        "RAFFLE_BULK_EXCLUDE_SAME_EVENT",
+        ErrorKind.Invalid);
 }

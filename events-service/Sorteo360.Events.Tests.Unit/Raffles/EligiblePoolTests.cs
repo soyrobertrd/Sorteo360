@@ -197,7 +197,7 @@ public sealed class EligiblePoolTests
     public void For_ReturnsMembersOrderedById_WhenTheyArriveInAnotherOrder()
     {
         var attendees = Enumerable.Range(0, 20).Select(i => Attendee($"P{i}")).ToList();
-        var shuffled = attendees.OrderByDescending(a => a.EmailNormalized).ToList();
+        var shuffled = attendees.OrderByDescending(a => a.IdentityKey).ToList();
 
         var pool = EligiblePool.For(shuffled, [], onePrizePerCompany: false);
 
