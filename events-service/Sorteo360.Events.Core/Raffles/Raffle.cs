@@ -38,6 +38,21 @@ public sealed record Raffle
 
     public bool OnePrizePerPerson { get; init; }
     public bool OnePrizePerCompany { get; init; }
+
+    /// <summary>
+    /// El evento al que pertenece este sorteo junto con otros (sorteos vinculados). Nulo si no se
+    /// vinculó. Los sorteos de un mismo grupo (<see cref="GroupEventId"/>) no repiten ganadores: quien
+    /// tiene un premio vivo en uno queda fuera del bombo de los demás. Editable salvo completado; rige
+    /// desde el próximo giro.
+    /// </summary>
+    public Guid? LinkedEventId { get; init; }
+
+    /// <summary>
+    /// El grupo del sorteo: el evento vinculado o, sin vínculo, su propio evento. Un sorteo sin
+    /// vínculo es el ancla de los que se vinculan a su evento.
+    /// </summary>
+    public Guid GroupEventId => LinkedEventId ?? EventId;
+
     public string? BoardTitle { get; init; }
     public string? BoardSubtitle { get; init; }
     public string? BoardIdentifier { get; init; }
@@ -173,6 +188,7 @@ public sealed record Raffle
             // Siempre: quien gana no vuelve a entrar al bombo (EligiblePool), se pida lo que se pida.
             OnePrizePerPerson = true,
             OnePrizePerCompany = dto.OnePrizePerCompany,
+            LinkedEventId = dto.LinkedEventId,
             BoardTitle = dto.BoardTitle ?? BoardTitle,
             BoardSubtitle = dto.BoardSubtitle ?? BoardSubtitle,
             BoardIdentifier = dto.BoardIdentifier ?? BoardIdentifier,

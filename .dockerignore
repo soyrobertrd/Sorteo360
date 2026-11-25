@@ -53,6 +53,7 @@ docker-compose*.yml
 .env
 .env.*
 !.env.example
+.secrets/
 **/*.Secrets.json
 **/appsettings.*.Local.json
 

@@ -172,14 +172,16 @@ export function DatePicker({
       setViewMonth(ancla.getMonth())
       return
     }
-    if (parsedMin) {
-      setViewYear(parsedMin.getFullYear())
-      setViewMonth(parsedMin.getMonth())
+    const min = parseIsoDate(minDate)
+    if (min) {
+      setViewYear(min.getFullYear())
+      setViewMonth(min.getMonth())
       return
     }
-    if (parsedMax) {
-      setViewYear(parsedMax.getFullYear())
-      setViewMonth(parsedMax.getMonth())
+    const max = parseIsoDate(maxDate)
+    if (max) {
+      setViewYear(max.getFullYear())
+      setViewMonth(max.getMonth())
     }
   }, [value, anchorDate, minDate, maxDate])
 
@@ -600,7 +602,7 @@ export function DatePicker({
                     onClick={handlePrevMonth}
                     disabled={!canGoPrevMonth}
                     aria-label="Mes anterior"
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100/80 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep/30 dark:focus-visible:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-slate-100/80 dark:disabled:hover:bg-slate-800"
+                    className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-100/80 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep/30 dark:focus-visible:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-slate-100/80 dark:disabled:hover:bg-slate-800"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
@@ -609,7 +611,7 @@ export function DatePicker({
                     onClick={handleNextMonth}
                     disabled={!canGoNextMonth}
                     aria-label="Mes siguiente"
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100/80 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep/30 dark:focus-visible:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-slate-100/80 dark:disabled:hover:bg-slate-800"
+                    className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-100/80 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep/30 dark:focus-visible:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-slate-100/80 dark:disabled:hover:bg-slate-800"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>

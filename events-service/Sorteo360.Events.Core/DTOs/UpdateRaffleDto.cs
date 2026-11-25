@@ -23,4 +23,5 @@ public record UpdateRaffleDto(
     string? BoardTitle = null,
     string? BoardSubtitle = null,
     string? BoardIdentifier = null,
-    int? BoardBatchSize = null);
+    int? BoardBatchSize = null,
+    Guid? LinkedEventId = null);

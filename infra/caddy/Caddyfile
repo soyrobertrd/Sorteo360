@@ -10,6 +10,14 @@
 
 	encode gzip zstd
 
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Frame-Options "DENY"
+		Content-Security-Policy "frame-ancestors 'none'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
 	# El frontend nginx interno atiende la SPA y enruta /v1/* hacia events-service,
 	# convocatorias-service y notification-service dentro de la red privada de Docker.
 	reverse_proxy frontend:8080 {

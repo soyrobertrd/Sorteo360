@@ -305,7 +305,7 @@ export function planificarAsientos(
   pendientes: Sentable[],
 ): Record<string, Asiento> {
   const asientos = { ...actuales }
-  const orden = [...pendientes].sort((a, b) =>
+  const orden = pendientes.toSorted((a, b) =>
     (a.fechaRegistro ?? '').localeCompare(b.fechaRegistro ?? ''),
   )
   const mesas = Array.from({ length: config.mesas }, (_, i) => i + 1)
@@ -333,7 +333,7 @@ export function planificarAsientos(
       const conSuEmpresa = generalesDelSalon.filter((m) =>
         Object.values(asientos).some((a) => a.mesa === m && a.empresa === empresa),
       )
-      const masVacias = [...generalesDelSalon].sort(
+      const masVacias = generalesDelSalon.toSorted(
         (a, b) => ocupacion(asientos, a) - ocupacion(asientos, b),
       )
       candidatas = [...conSuEmpresa, ...masVacias]

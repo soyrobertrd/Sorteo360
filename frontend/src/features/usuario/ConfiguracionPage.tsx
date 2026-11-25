@@ -219,8 +219,9 @@ export function ConfiguracionPage() {
             </div>
             <button
               type="button"
-              className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors cursor-pointer"
+              className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-md shadow-lg hover:bg-blue-700 transition-colors cursor-pointer"
               title="Cambiar foto de perfil"
+              aria-label="Cambiar foto de perfil"
             >
               <Camera size={14} />
             </button>

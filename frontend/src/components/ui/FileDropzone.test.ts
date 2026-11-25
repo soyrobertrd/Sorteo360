@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { matchesAccept } from './FileDropzone'
+import { matchesAccept } from './fileAccept'
 
 const archivo = (name: string, type = '') => new File(['x'], name, { type })
 

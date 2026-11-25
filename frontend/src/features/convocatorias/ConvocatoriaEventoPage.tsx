@@ -81,7 +81,7 @@ export function ConvocatoriaEventoPage() {
   // Las más recientes primero; un borrador no tiene fecha de envío y se ordena por su alta.
   const filas = useMemo(
     () =>
-      [...(campanas.data?.items ?? [])].sort((a, b) =>
+      (campanas.data?.items ?? []).toSorted((a, b) =>
         (b.launchedAt ?? b.createdAt).localeCompare(a.launchedAt ?? a.createdAt),
       ),
     [campanas.data],

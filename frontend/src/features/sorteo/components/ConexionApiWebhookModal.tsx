@@ -37,10 +37,28 @@ interface ApiConnectionConfig {
 
 const STORAGE_PREFIX = 'sorteo360.raffle.integrations.'
 
+function generateWebhookSecret(): string {
+  const bytes = new Uint8Array(18)
+  crypto.getRandomValues(bytes)
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+  return `whsec_${hex}`
+}
+
 function readIntegrationConfig(eventId: string): ApiConnectionConfig {
   try {
     const raw = localStorage.getItem(`${STORAGE_PREFIX}${eventId}`)
-    if (raw) return JSON.parse(raw) as ApiConnectionConfig
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<ApiConnectionConfig>
+      return {
+        endpointUrl: parsed.endpointUrl ?? '',
+        method: parsed.method === 'POST' ? 'POST' : 'GET',
+        // Nunca hidratar credenciales desde localStorage; se mantienen solo en memoria.
+        authHeader: '',
+        dataPath: parsed.dataPath ?? '',
+        markCheckedIn: parsed.markCheckedIn ?? true,
+        webhookSecret: parsed.webhookSecret || generateWebhookSecret(),
+      }
+    }
   } catch {
     // Fallback por defecto
   }
@@ -50,13 +68,16 @@ function readIntegrationConfig(eventId: string): ApiConnectionConfig {
     authHeader: '',
     dataPath: '',
     markCheckedIn: true,
-    webhookSecret: `whsec_${eventId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || 'sorteo360'}`,
+    webhookSecret: generateWebhookSecret(),
   }
 }
 
 function saveIntegrationConfig(eventId: string, cfg: ApiConnectionConfig) {
   try {
-    localStorage.setItem(`${STORAGE_PREFIX}${eventId}`, JSON.stringify(cfg))
+    // Excluir authHeader del almacenamiento persistente para evitar filtración entre sesiones.
+    const { authHeader: _omit, ...safeCfg } = cfg
+    void _omit
+    localStorage.setItem(`${STORAGE_PREFIX}${eventId}`, JSON.stringify(safeCfg))
   } catch {
     // Ignorar error de almacenamiento
   }

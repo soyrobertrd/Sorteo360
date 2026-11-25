@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { Animate } from './Animate'
-import { useDialogFocus } from './useDialogFocus'
 
 export function Modal({
   title,
@@ -33,48 +32,83 @@ export function Modal({
   animated?: boolean
 }) {
   const titleId = useId()
-  const panelRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const onCloseRef = useRef(onClose)
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    onCloseRef.current = onClose
   }, [onClose])
 
-  // Foco inicial, Tab que no sale del diálogo y vuelta a quien lo abrió.
-  useDialogFocus(panelRef, open)
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+
+    if (open && !dialog.open) {
+      dialog.showModal()
+    } else if (!open && dialog.open) {
+      dialog.close()
+    }
+  }, [open])
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+
+    const handleClose = () => {
+      dialog.returnValue = ''
+      onCloseRef.current()
+    }
+    dialog.addEventListener('close', handleClose)
+
+    // Fallback para navegadores sin soporte nativo de `closedby="any"` (Safari).
+    if (!('closedBy' in HTMLDialogElement.prototype)) {
+      let pressedOutside = false
+      const isOutside = (e: PointerEvent) => {
+        const r = dialog.getBoundingClientRect()
+        return (
+          e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom
+        )
+      }
+      const onPointerDown = (e: PointerEvent) => {
+        pressedOutside = isOutside(e)
+      }
+      const onPointerUp = (e: PointerEvent) => {
+        if (pressedOutside && isOutside(e)) dialog.close()
+        pressedOutside = false
+      }
+      dialog.addEventListener('pointerdown', onPointerDown)
+      dialog.addEventListener('pointerup', onPointerUp)
+      return () => {
+        dialog.removeEventListener('close', handleClose)
+        dialog.removeEventListener('pointerdown', onPointerDown)
+        dialog.removeEventListener('pointerup', onPointerUp)
+      }
+    }
+
+    return () => {
+      dialog.removeEventListener('close', handleClose)
+    }
+  }, [open])
 
   if (!open) return null
 
-  // Se monta en <body>: un diálogo con su propio <form> abierto desde otro formulario
-  // quedaría anidado en el DOM, y Chrome no deja subir el submit del form interno hasta
-  // la raíz de React, así que el navegador recargaba la página en vez de guardar.
   return createPortal(
-    <Animate
-      variant="fade"
-      duration={200}
-      disabled={!animated}
-      className={`fixed inset-0 z-50 flex justify-center bg-slate-900/50 backdrop-blur-xs ${
-        // En el teléfono todo diálogo sube desde abajo, al alcance del pulgar.
-        sheet ? 'items-end' : 'items-end sm:items-center sm:p-4'
-      }`}
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
+    <dialog
+      ref={dialogRef}
+      {...({ closedby: 'any' } as Record<string, unknown>)}
+      aria-labelledby={title ? titleId : undefined}
+      className={`m-0 w-full max-w-none bg-transparent p-0 backdrop:bg-slate-900/50 backdrop:backdrop-blur-xs open:flex ${
+        sheet
+          ? 'mt-auto mb-0 items-end justify-center'
+          : 'mx-auto mt-auto mb-0 sm:my-auto items-end sm:items-center justify-center sm:p-4'
+      } ${width ?? (wide ? 'sm:max-w-3xl' : 'sm:max-w-xl')}`}
     >
       <Animate
         variant={sheet ? 'fade-up' : 'zoom'}
         distance={24}
         duration={200}
         disabled={!animated}
-        ref={panelRef}
-        className={`w-full max-h-[92dvh] sm:max-h-[90vh] ${sheet ? 'rounded-t-3xl' : 'rounded-t-2xl sm:rounded-2xl'} bg-white shadow-2xl dark:bg-slate-900 dark:border dark:border-slate-800 flex flex-col ${
-          width ?? (wide ? 'sm:max-w-3xl' : 'sm:max-w-xl')
-        }`}
-        onClick={(e) => e.stopPropagation()}
+        className={`w-full max-h-[92dvh] sm:max-h-[90vh] ${sheet ? 'rounded-t-3xl' : 'rounded-t-2xl sm:rounded-2xl'} bg-white shadow-2xl dark:bg-slate-900 dark:border dark:border-slate-800 flex flex-col`}
       >
         {/* Header con Título y Botón Cerrar */}
         <div className="flex items-center justify-between border-b border-slate-200/80 bg-white/95 px-5 py-3.5 dark:border-slate-800 dark:bg-slate-900/95 rounded-t-2xl shrink-0">
@@ -90,7 +124,7 @@ export function Modal({
           {showCloseButton && (
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => dialogRef.current?.close()}
               className="-mr-1.5 flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
               aria-label="Cerrar"
             >
@@ -104,7 +138,7 @@ export function Modal({
           {children}
         </div>
       </Animate>
-    </Animate>,
+    </dialog>,
     document.body,
   )
 }

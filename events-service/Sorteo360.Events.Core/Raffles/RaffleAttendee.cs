@@ -31,8 +31,31 @@ public sealed record RaffleAttendee(
     string? ManualNote,
     string? OverruledReason,
     DateTimeOffset? ReinstatedAt = null,
-    Guid? ReinstatedById = null)
+    Guid? ReinstatedById = null,
+    bool WonInLinkedRaffle = false)
 {
+    /// <summary>
+    /// Marca a quienes tienen un premio vivo en un sorteo vinculado, por su clave de persona. No se
+    /// guarda: se calcula en cada lectura del bombo (y bajo el bloqueo del grupo al girar).
+    /// </summary>
+    /// <remarks>
+    /// shortcut: el cruce es por <see cref="IdentityKey"/> (correo, o ID si no hay correo); una persona
+    /// cargada con correo en un padrón y solo con ID en otro no se reconoce. Cruzar también por ID si pasa.
+    /// </remarks>
+    public static IReadOnlyList<RaffleAttendee> TagLinkedWinners(
+        IReadOnlyList<RaffleAttendee> attendees, IReadOnlySet<string> linkedWinnerKeys)
+    {
+        ArgumentNullException.ThrowIfNull(attendees);
+        ArgumentNullException.ThrowIfNull(linkedWinnerKeys);
+
+        if (linkedWinnerKeys.Count == 0)
+            return attendees;
+
+        return attendees
+            .Select(a => linkedWinnerKeys.Contains(a.IdentityKey) ? a with { WonInLinkedRaffle = true } : a)
+            .ToList();
+    }
+
     /// <summary>
     /// Cómo se lo nombra en la pantalla y en el sorteo: nombre y apellido, sin espacios sobrantes si
     /// falta alguno.

@@ -86,7 +86,7 @@ app.UseSerilogRequestLogging(options =>
         var path = httpContext.Request.Path.Value;
         var statusCode = httpContext.Response.StatusCode;
 
-        if (path is not null && path.StartsWith("/_health") && statusCode == 200)
+        if (path is not null && (path.StartsWith("/_health") || path is "/_alive" or "/_ready") && statusCode == 200)
             return LogEventLevel.Debug;
         if ((path is "/_alive" or "/_ready") && statusCode == 200)
             return LogEventLevel.Debug;

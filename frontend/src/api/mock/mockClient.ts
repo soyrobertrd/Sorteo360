@@ -697,7 +697,7 @@ export class MockApiClient implements ApiClient {
   async listContactClassifications(): Promise<ContactClassificationResponse[]> {
     await this.delay()
     return structuredClone(
-      [...this.contactClassifications].sort((a, b) => a.name.localeCompare(b.name)),
+      this.contactClassifications.toSorted((a, b) => a.name.localeCompare(b.name)),
     )
   }
 
@@ -3405,10 +3405,15 @@ export class MockApiClient implements ApiClient {
     const { members } = this.eligiblePool(raffle)
     // Como el servicio (R14): con `limit`, una muestra al azar de a lo sumo 100; el total no cambia.
     const tope = limit && limit > 0 ? Math.min(limit, 100) : null
-    const muestra =
-      tope !== null && members.length > tope
-        ? [...members].sort(() => Math.random() - 0.5).slice(0, tope)
-        : members
+    let muestra = members
+    if (tope !== null && members.length > tope) {
+      const pool = [...members]
+      for (let i = 0; i < tope; i++) {
+        const j = i + Math.floor(Math.random() * (pool.length - i))
+        ;[pool[i], pool[j]] = [pool[j], pool[i]]
+      }
+      muestra = pool.slice(0, tope)
+    }
     return {
       count: members.length,
       participants: muestra.map((a) => ({

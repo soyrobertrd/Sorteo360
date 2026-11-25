@@ -5,6 +5,8 @@
 
 # dotenv files
 .env
+.env.prod
+.env.*.local
 
 # Claves y credenciales locales. La carpeta entera, no un archivo: el par ECDSA que
 # scripts/sendgrid-fake-events.sh genera para firmar lotes del webhook vive acá, y una clave

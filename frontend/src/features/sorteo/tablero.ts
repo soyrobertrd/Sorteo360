@@ -104,7 +104,7 @@ export const patrocinadorDe = (p: PrizeResponse) => p.sponsor?.companyName?.trim
  */
 export function gruposDePremios(raffle: Pick<RaffleResponse, 'rounds'>): GrupoPremios[] {
   const grupos: GrupoPremios[] = []
-  for (const ronda of [...raffle.rounds].sort((a, b) => a.number - b.number)) {
+  for (const ronda of raffle.rounds.toSorted((a, b) => a.number - b.number)) {
     const porClave = new Map<string, GrupoPremios>()
     for (const p of ronda.prizes) {
       const patrocinador = patrocinadorDe(p)

@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { matchesAccept } from './fileAccept'
 
 interface FileDropzoneProps {
   /** Extensiones o tipos MIME, como en `<input accept>`: `.xlsx,.csv` o `image/*`. */
@@ -14,24 +15,6 @@ interface FileDropzoneProps {
   /** Versión compacta (una línea), para formularios. */
   compact?: boolean
   className?: string
-}
-
-/** Si el archivo cumple `accept`. El navegador no filtra lo que se suelta, solo lo que se elige. */
-export function matchesAccept(file: File, accept: string): boolean {
-  const rules = accept
-    .split(',')
-    .map((r) => r.trim().toLowerCase())
-    .filter(Boolean)
-  if (rules.length === 0) return true
-  const name = file.name.toLowerCase()
-  const type = file.type.toLowerCase()
-  return rules.some((r) =>
-    r.startsWith('.')
-      ? name.endsWith(r)
-      : r.endsWith('/*')
-        ? type.startsWith(r.slice(0, -1))
-        : type === r,
-  )
 }
 
 /**

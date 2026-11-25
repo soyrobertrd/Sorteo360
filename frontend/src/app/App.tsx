@@ -117,7 +117,7 @@ const RegistroInvitacionPage = () =>
 const BajaPage = () => lazyPage(() => import('@/features/publico/portal/BajaPage'), 'BajaPage')
 const EntradaPage = () =>
   lazyPage(() => import('@/features/publico/portal/EntradaPage'), 'EntradaPage')
-const NotFoundPage = () => lazyPage(() => import('@/features/errors/NotFoundPage'), 'NotFoundPage')
+import { NotFoundPage } from '@/features/errors/NotFoundPage'
 
 /** Las rutas de una función, detrás de su interruptor. */
 const feature = (featureKey: FeatureKey, children: RouteObject[]): RouteObject => ({
@@ -222,7 +222,7 @@ const router = createBrowserRouter([
         ],
       },
       { path: '/configuracion', element: ConfiguracionPage() },
-      { path: '*', element: NotFoundPage() },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
   {
@@ -240,7 +240,7 @@ const router = createBrowserRouter([
           { path: 'registro', element: RegistroInvitacionPage() },
           { path: 'baja', element: BajaPage() },
           { path: 'entrada/:qrCode', element: EntradaPage() },
-          { path: '*', element: NotFoundPage() },
+          { path: '*', element: <NotFoundPage /> },
         ],
       },
     ],
